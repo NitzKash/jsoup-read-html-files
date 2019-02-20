@@ -1,0 +1,1217 @@
+/*
+Case 1:
+The change is made to the getNBDirector function to handle the situation where frameset page is opened in a pop-up.
+Bug:	OB Help page which is a framset page is opened in a popup and the getNbdirector call from the content frame within it fails.
+		Thereby failing any NbDirector calls from within the frame, in this case ILI link
+Reason: In above case, even though the OB help page is a popup, the window.opener is null however window.parent.opener was not null. See below
+		window = OB Help content frame
+		window.opener = null
+		window.parent = OB Help frameset page
+		window.parent.opener = mainapp
+Fix: So the condition was added, as below
+	/// OLD code
+	if (window.opener == null)
+	{
+		get NBDirector
+	}
+
+	/// NEW CODE
+	if (window.opener == null)
+	{
+		if (window.parent != null && window.parent.opener == null)
+		{
+			get NBDirector
+		}
+		else
+		{
+			get NbDierctor from popup
+		}
+	}
+
+Case 2: However the above change introduced the bug when coming back to NB from Collboration live help session.
+Bug:	When coming back from Collaboration live help sesion to NetBenefits, the navbar comes up but nothing opens in mainapp frame.
+Reason:	All the NBDirector calls from mainapp frame were failing. See below...
+	window = mainapp
+	window.opener = null
+	window.parent = nbHome
+	window.parent.opener = Collaboration (third party window)
+
+	Since window.parent.opener is not Null it goes to call getNbDirectorFromPopup and tries to checkAccess for parent.opener which is
+	Collaboration window i.e. third party window and fails with Permission Denied error
+Fix: Added the following condition to not check for parent.opener if parent is Navstation
+	/// OLD CODE
+	if (window.opener == null)
+	{
+		if (window.parent != null && window.parent.opener == null)
+		{
+			get NBdirector
+		}
+	}
+
+	// NEW CODE
+	if (window.opener == null)
+	{
+		// Condition for Collaboration - dont check for parent.opener if parent is Navstation
+		if (window.parent != null && window.parent.name == "nbHome")
+		{
+			get NBdirector
+		}
+		// Condition for OB Help framset popup - check if window.parent.opener is also null
+		else if (window.parent != null && window.parent.opener == null)
+		{
+			get NBdirector
+		}
+		else
+		{
+			get NBdirector from popup
+		}
+	}
+
+*/
+
+/*
+March 22, 2006 - Rewriting private_getNbDirector() and private_getNbDirector() functions for 2 reasons
+1. issue with opening nested popup 2 level down, when window refence is passed to be parent for
+opening a popup (XP SP2 popup blocker issue). NbDir is null in a popup 2 level down, failing to open any nested popup from that point.
+The issue was reported by H&I.
+2. simplification of the code.
+*/
+
+//curFocus to get the value of currently focused element-accessibility fix
+var curFocus = "";
+
+function getNbDirector()
+{
+	try
+	{
+		var nbDirector;
+		if (window.opener == null || checkCrossDomainAccessForPopUpWindow(window))
+		{
+			if (hasAccessToFrame(window) && window.NBDirector)
+			{
+				nbDirector = window.NBDirector;
+			}
+			else if (window.parent != null && window.parent.name == "nbHome")
+			{
+				nbDirector = private_getNbDirector();
+			}
+			else if (window.parent != null && window.parent.opener == null)
+			{
+				nbDirector = private_getNbDirector();
+			}
+			else
+			{
+				nbDirector = private_getNbDirectorFromPopup();
+			}
+		}
+		else
+		{
+			nbDirector = private_getNbDirectorFromPopup();
+		}
+		return nbDirector;
+	}
+	catch(e)
+	{
+		return null;
+	}
+}
+
+function checkCrossDomainAccessForPopUpWindow(win)
+{
+                try
+                {
+                                var hrefattribute = win.opener.location.href;
+                                return false;
+                }
+                catch(e)
+                {
+                                return true;
+                }
+}
+
+function private_getNbDirector()
+{
+	var nbDirector = null;
+	var testwin = window;
+
+	var foundNBDir = false;
+	var nbDirMissing = false;
+	while (!foundNBDir && !nbDirMissing)
+	{
+		foundNBDir = false;
+		nbDirMissing = false;
+		var hasAccess = checkAccess(testwin,
+							function () { return false; },
+							function () { return true; }
+						);
+		if (hasAccess && testwin.NBDirector)
+		{
+			nbDirector = testwin.NBDirector;
+			foundNBDir = true;
+		}
+		else if (testwin != testwin.top && testwin.parent && (testwin != testwin.parent))
+		{
+			testwin = testwin.parent;
+			foundNBDir = false;
+		}
+		else
+		{
+			nbDirector = null;
+			nbDirMissing = true;
+		}
+	}
+
+	return nbDirector;
+}
+
+function private_getNbDirectorFromPopup()
+{
+	var nbDirector = null;
+	var testwin = window.opener;
+	// assign window.parent.opener in case when window.opener is NULL.
+	// This will happen when the popup is a frameset page like IB Help popup page.
+	if (testwin == null)
+	{
+		testwin = window.parent.opener;
+	}
+
+	var foundNBDir = false;
+	var nbDirMissing = false;
+	while (!foundNBDir && !nbDirMissing)
+	{
+		foundNBDir = false;
+		nbDirMissing = false;
+		hasAccess = checkAccess(testwin,
+						function () { return false; },
+						function () { return true; }
+					);
+		if (hasAccess && testwin.NBDirectorLite)
+		{
+			nbDirector = testwin.NBDirectorLite;
+			foundNBDir = true;
+		}
+		else if (testwin != null && typeof testwin != "undefined" &&
+				testwin != testwin.top && testwin.parent && (testwin != testwin.parent))
+		{
+			testwin = testwin.parent;
+			foundNBDir = false;
+		}
+		else if (testwin != null && typeof testwin != "undefined" &&
+				testwin.window != null && typeof testwin.window != "undefined" &&
+				testwin.window.opener && (testwin != testwin.window.opener))
+		{
+			testwin = testwin.window.opener;
+			foundNBDir = false;
+		}
+		else
+		{
+			nbDirMissing = true;
+		}
+	}
+
+	return nbDirector;
+}
+
+
+// check if we have access to the frame
+function hasAccessToFrame(testFrm)
+{
+	var hasAccess = checkAccess(testFrm,
+			function () { return false; },
+			function () { return true; }
+		   );
+	return hasAccess;
+}
+
+function checkAccess(win, noAccessHandler, accessHandler)
+{
+	try
+  	{
+                var l = win.location.href;
+                return accessHandler();
+        }
+	catch(e)
+	{
+		return noAccessHandler();
+	}
+}
+
+function isPopup()
+{
+	var isNbDirLocal = private_getNbDirector();
+	if (isNbDirLocal == null || typeof isNbDirLocal == "undefined")
+	{
+		return true;
+	}
+
+	return false;
+}
+
+/* This function is called by NbDirector, please refrain from calling this function */
+function openPopupFromPopup_ForNbDirectorUseOnly(newUrl, windowTitle, props)
+{
+	var windowref = window.open(newUrl, windowTitle, props);
+	return windowref;
+}
+
+/* Browser sniffing taking new Netscapes into consideration  */
+/* and using document.layers for early NS4 */
+var private_isNav4 = (document.layers)? true:false;
+var private_isNewNav = ((parseInt(navigator.appVersion)>=5)&&(navigator.appName.indexOf("Netscape")!=-1))? true:false;
+var private_isIE = (navigator.appName.indexOf("Microsoft") != -1) ? true : false;
+
+// granular browser sniff for windows management
+var navAppVersion = navigator.appVersion;
+var agt=navigator.userAgent.toLowerCase();
+var is_minor = parseFloat(navigator.appVersion);
+var is_nav  = ((agt.indexOf('mozilla')!=-1) && (agt.indexOf('spoofer')==-1)
+                && (agt.indexOf('compatible') == -1) && (agt.indexOf('opera')==-1)
+                && (agt.indexOf('webtv')==-1) && (agt.indexOf('hotjava')==-1));
+var private_is_nav47or48 = (is_nav && (is_minor >= 4.7) && (is_minor <= 4.8));
+
+
+//Browser sniffing functions
+function isNav()
+{
+	return is_nav;
+}
+
+function isNav4()
+{
+	return private_isNav4;
+}
+
+function isNewNav()
+{
+	return private_isNewNav;
+}
+
+function is_Nav47or48()
+{
+	return private_is_nav47or48;
+}
+
+function isIE()
+{
+	return private_isIE;
+}
+
+function setCookie(cookie)
+{
+	self.document.cookie = cookie;
+}
+
+function getCookie(name)
+{
+	var result = null;
+	var cook = " " + document.cookie + ";";
+	var searchName = " " + name + "=";
+	var startOfCookie = cook.indexOf(searchName);
+	var endOfCookie;
+	if (startOfCookie != -1)
+	{
+		startOfCookie += searchName.length;
+		endOfCookie = cook.indexOf(";", startOfCookie);
+		result = unescape(cook.substring(startOfCookie, endOfCookie));
+	}
+	return result;
+}
+
+function clearCookie(name)
+{
+	var threeDays = 3 * 24 * 60 * 60 * 1000;
+	var expDate = new Date();
+	expDate.setTime (expDate.getTime() - threeDays);
+	document.cookie = name + "=Die; expires=" + expDate.toGMTString();
+}
+
+function oldBrowser()
+{
+	var navisblank = (navAppVersion == "");
+	var MSIE30 = (navAppVersion.indexOf("MSIE 3.0") != -1);
+	var old = (navisblank || MSIE30);
+	return (old);
+}
+
+function LTrim(strIn)
+{
+	var i=0;
+	while (i < strIn.length && strIn.charAt(i) == ' ')	{i++;}
+	if (i < strIn.length)
+		strOut = strIn.substring(i,strIn.length);
+	else
+		return "";
+	return strOut;
+}
+
+function RTrim(strIn)
+{
+	var i=strIn.length-1;
+	while (i>=0 && strIn.charAt(i) == ' ') {i--;}
+	if (i>=0)
+		strOut = strIn.substring(0,i+1);
+	else
+		return "";
+	return strOut;
+}
+
+function Trim(strIn)
+{
+	return LTrim(RTrim(strIn));
+}
+
+
+function y2k(n) { return (n<1000) ? n + 1900 : n; }
+
+
+function printPage()
+{
+	if (window.print)
+		window.print();
+	else
+		alert("Please use your browser's print functionality to print this page.");
+}
+
+/* the function parses the url passed into pieces of information as domain, realm, appName, etc.
+The url passed should be the complete URL i.e. starting from http. In case of static pages the
+argument passed would typically be document.location
+Usage: var newPage = new URL();
+var newURL = "/" + newPage.realm + "/" + newPage.app + +"/" + relatievURL
+note: the input to this function is always assumed to be of the
+format http(s)://xxx.yyy.com/realm/app/blah/blah/bah?blah=blah&blah=blah...
+*/
+function URL(inURL)
+{
+	if (inURL == null || typeof inURL == "undefined")
+	{
+		alert("argument URL in URL function found null");
+	}
+	var instring = "" + inURL.toString();
+
+	var colon=0; var slashslash = 0; var next_slash_index=0;
+	var remaining = "";
+	if ((colon = instring.indexOf(":")) > -1)
+		this.protocol = Substring(instring, 0, colon);
+
+	if ((slashslash = instring.indexOf("//")) > -1)
+	{
+		remaining = Substring(instring, slashslash+2, instring.length);
+		next_slash_index = remaining.indexOf("/");
+		this.domain = Substring(remaining, 0, next_slash_index-1 );
+	}
+
+	this.uri = Substring(remaining, next_slash_index+1, remaining.length);
+
+	remaining = Substring(remaining, next_slash_index+1, remaining.length);
+	next_slash_index = remaining.indexOf("/");
+
+	this.realm = Substring(remaining, 0, next_slash_index-1 );
+
+	remaining = Substring(remaining, next_slash_index+1, remaining.length);
+	next_slash_index = remaining.indexOf("/");
+
+	this.app = Substring(remaining, 0, next_slash_index-1 );
+	this.remaining = Substring(remaining, next_slash_index+1, remaining.length);
+}
+
+function Substring(string, nStartIndex, nEndIndex)
+{
+	var retStr = "";
+	if (string == null || typeof string == "undefined")
+	{
+		return retStr;
+	}
+	var len = string.length;
+	if ( (typeof nStartIndex != "number") || (typeof nEndIndex != "number") || (len < nEndIndex) )
+	{
+		return retStr;
+	}
+
+	var i=0;
+	for (i=nStartIndex; i<=nEndIndex; i++)
+	{
+		retStr += string.charAt(i);
+	}
+
+	return retStr;
+}
+
+var curDestUrl;
+function checkDuplicateClick(destUrl)
+{
+	if (curDestUrl != destUrl)
+	{
+		curDestUrl = destUrl;
+		return true;
+	}
+	return false;
+}
+
+function convertToJavaScriptIdentifer(originalString, replaceWith)
+{
+  if (isParamNull(originalString))
+  {
+	  return originalString;
+  }
+
+  var invalidChars = "{}/\\-%#@=;,!*[]?\"\'~.<>|`";
+
+  var invalidChar;
+  var stringParts;
+
+  if (replaceWith == null
+	    || typeof replaceWith == "undefined")
+  {
+    replaceWith = "_";
+  }
+
+  var modifiedString = originalString;
+
+  for (i = 0; i < invalidChars.length; i++)
+  {
+    invalidChar = invalidChars.charAt(i);
+    stringParts = modifiedString.split(invalidChar);
+    modifiedString = stringParts.join(replaceWith);
+  }
+
+  return modifiedString;
+}
+
+/*
+ *  Given the realm & App
+ *  Opens a new window for Security content
+ */
+function SecurityContent(realmApp)
+{
+	if (!realmApp)
+	{
+		if (nbDir)
+		{
+			var realmApp = "/" + nbDir.getRealm() + "/employeeservices" ;
+		}
+	}
+	if (nbDir && realmApp)
+	{
+		var ss = realmApp + "/seccontent/content" ;
+		nbDir.openAuxApplicationWindow(ss, true);
+	}
+}
+
+
+// The following two wrapper function are wrappers of DCLExternalLink(url, legalDiscInd, popupInd), the wrappers are requested and used by Search Feature
+function linkToExternalSite(url)
+{
+	DCLExternalLink	(url, 'Y', 'Y')
+}
+
+function linkToInternalSite(url)
+{
+	DCLExternalLink	(url, 'N', 'Y')
+}
+
+
+
+// **************************************************************************************
+//linkToTarget() is used by common web navigation component.
+//targetWin could be TOP, SELF, POPUP, DFLT, winStyle defines the target window style,
+//currently it is the popup window type
+// **************************************************************************************
+
+function linkToTarget(linkName, linkUri, querystringParams, anchor, targetPkg, targetWin, winStyle)
+{
+	var destinationUrl = linkUri;
+	if(anchor && anchor != "")
+	// first we append the anchor to the uri
+	{
+		destinationUrl = destinationUrl + "#" + anchor;
+	}
+
+	// check the targetPkg, if it is RTL (retail), which means we go from NB to Retail,
+	//  we will take the request to NB Interstitial Page action, let that action decide if we need show NB Interstitial Page
+	if(targetPkg == "RTL")
+	{
+		// first encode the url
+		destinationUrl = escape(destinationUrl);
+
+		// currently when the target package is Retail, we suppress the NB Interstitial page and goto Retail directly, this could
+		// be adjusted by business case. /AthenaWebApp/WebContent/js/action.js has the detail for different scenarios
+		var gotoUrl = "/" + nbDir.getRealm() + "/employeeservices/portfolio/transfer/init?redirectURL="+ destinationUrl;
+		nbDir.transferTo(destinationUrl, querystringParams, nbDir.NBMASTER.mainapp);
+	}
+
+	// when target package is "NB"
+	else if(targetPkg == "NB")
+	{
+		if(targetWin == "TOP")
+		{
+			nbDir.transferTo(destinationUrl, querystringParams, window.top);
+    		}
+
+    		else if(targetWin == "SELF")
+		{
+			nbDir.transferTo(destinationUrl, querystringParams, window.self);
+    		}
+
+    		else if (targetWin== "DFLT")
+    		{
+    		nbDir.transferTo(destinationUrl, querystringParams, nbDir.NBMASTER.mainapp)
+		}
+
+	 	//  "targetWin" argument is "POPUP" now,  winStyle should be either null, empty or a real nbdir popup window type
+    		else if(targetWin == "POPUP")
+    		{
+  			var windowType = null;
+    			if (winStyle && winStyle != "")
+    			{
+    	    		windowType = eval("nbDir." + winStyle);
+    			}
+    			else
+    			{
+    	    		windowType = nbDir.WINDOW_TYPE_AUX_CONTENT_MED;
+    			}
+
+        		nbDir.transferToPopup(destinationUrl, querystringParams, windowType, true);
+    		}
+    		else
+    		{
+    		alert("Your target window is not valid!");
+    		}
+	}
+	else
+	{
+		alert("Your target package is not valid!");
+	}
+
+}
+
+
+
+
+// **************************************************************************************
+// linkViaXrouter:  launches a page via an X-Router link.  The link will always target mainapp frame.
+// Used by DCL in link wizard
+// **************************************************************************************
+function linkViaXrouter(xRouterFunctionName, querystringParams, popupWindow)
+{
+	var targetFrame;
+	if (nbDir && nbDir.NBMASTER.mainapp)
+	{
+		targetFrame = nbDir.NBMASTER.mainapp;
+	}
+	else
+	{
+		targetFrame = nbDir.getMainAppForPopup();
+	}
+
+	private_linkViaXrouter(xRouterFunctionName, querystringParams, popupWindow, targetFrame);
+}
+
+// **************************************************************************************
+// linkViaXrouterTargetSelf:  New function which launches a X-Router desitnation page
+// targeting self window. Typically used in a popup to target Xrouter destination not to
+// parent mainapp frame but within its popup window itself. Used by DCL in link wizard
+// **************************************************************************************
+function linkViaXrouterTargetSelf(xRouterFunctionName, querystringParams, popupWindow)
+{
+	var targetFrame = window;
+	private_linkViaXrouter(xRouterFunctionName, querystringParams, popupWindow, targetFrame);
+}
+
+// private link via xrouter function which takes additional argument as targetFrame
+function private_linkViaXrouter(xRouterFunctionName, querystringParams, popupWindow, targetFrame)
+{
+	// Adjust the X-Router function name:  replace punctuation characters with underscores
+    // This is a requirement of NbDirector's "transferTo" function
+    var xRouterAdjustedFunctionName = convertToJavaScriptIdentifer(xRouterFunctionName);
+
+	// check if entry exist in xrouter i.e. if not then its a frameless page and go to navstation/navigation Url
+	var nbDirLogicalName = "";
+	var xrouterEntryExist = checkIfXRouterEntryExists(xRouterAdjustedFunctionName);
+	if ((xrouterEntryExist == false) || (xrouterEntryExist == "false"))
+	{
+		if ((popupWindow == false) || (popupWindow == "false"))
+		{
+			// note do not pass "xRouterAdjustedFunctionName" here.. as that has . replaced with underscore
+			nbDirLogicalName = "/" + nbDir.getRealm() + "/navstation/navigation?functionName="+ xRouterFunctionName;
+			targetFrame = nbDir.NBMASTER;
+		}
+		else
+		{
+			// if opening a framed page in a popup from a frameless page - use navstation/transfer to avoid navbar in a popup
+			// opening frameless page in a popup - anyway does not support opening it without navbar AND no need to set any targetFrame when popup
+			nbDirLogicalName = "/" + nbDir.getRealm() + "/navstation/transfer?functionName="+ xRouterFunctionName;
+		}
+	}
+	else
+	{
+		// function to evaluate the destinationURI for the given xrouter func name
+		nbDirLogicalName = nbDir.evalXRouterFunctionName(xRouterAdjustedFunctionName);
+    }
+
+	// If the "popupWindow" argument is false, then render the content in
+    // the frame passed as targetFrame which could be either mainapp or any other window object.
+	if ((popupWindow == false) || (popupWindow == "false"))
+    {
+		nbDir.transferTo(nbDirLogicalName, querystringParams, targetFrame);
+    }
+
+    // If the "popupWindow" argument is anything except false, display the content in
+    // a new popup window.  The "popupWindow" argument can be one of the following:
+    // 1, A window type, corresponding to the standard window sizes supported by NbDirector; or
+    // 2. the boolean value true, in which case a medium external window is used by default.
+    else
+    {
+        var windowType = null;
+
+    	if ((popupWindow == true) || (popupWindow == "true"))
+    	{
+    	    windowType = nbDir.WINDOW_TYPE_AUX_CONTENT_MED;
+    	}
+    	else
+    	{
+    	    windowType = eval("nbDir." + popupWindow);
+    	}
+
+        nbDir.transferToPopup(nbDirLogicalName, querystringParams, windowType, true);
+    }
+}
+
+// Check if entry exists in xrouter i.e. if entry does not exist means its a frameless page - then do navstation/navigation targeting nbDir.NBMASTER
+function checkIfXRouterEntryExists(xRouterAdjustedFunctionName)
+{
+	var xrouterEntryExist = false;
+	if (!isParamNull(xRouterAdjustedFunctionName))
+	{
+		var testDestURI = nbDir.evalXRouterFunctionName(xRouterAdjustedFunctionName);
+		var homeDestURI = nbDir.evalXRouterFunctionName("goto_iaHP");
+		if (testDestURI != homeDestURI)
+		{
+			xrouterEntryExist = true;
+		}
+	}
+
+	return xrouterEntryExist;
+}
+
+// DCLExternalLink:  launches an external URL.  Used by DCL in link wizard
+function DCLExternalLink(url, legalDiscInd, popupInd)
+{
+	if(legalDiscInd == 'Y')
+	{
+		url = "/static/netbenefits/common/html/go_external_site.html?" + escape(url);
+	}
+	if(popupInd == 'Y')
+	{
+		var externalPopupWin = null;
+		if(legalDiscInd == 'Y')
+		{
+			externalPopupWin=nbDir.returnOpenAuxContentWindowMed(url, false);
+		}
+		else
+		{
+			externalPopupWin=nbDir.returnOpenGenericCustomizableWindow(url, false, "784", "480","80","80", "no", "yes", "yes", "yes", "yes", "yes");
+		}
+		externalPopupWin.focus();
+	}
+	else
+	{
+		document.location = url;
+	}
+}
+
+// function called to open external site (non NetBenefits site to be specific). The function is called from
+// DCL link Wizard (for external link), this wizard offers option to choose different legal disclaimer.
+function openWinExternalSite(funcArea, context, url, popupindicator)
+{
+	var encodeURL = url;
+	try
+	{
+		var is_querystring = url.indexOf('?');
+		if(is_querystring != -1)
+		{
+			encodeURL = encodeURIComponent(encodeURL);
+		}
+		/*
+		if the functional area and context are not specified, then external site is directly launched
+		without the intermediary disclaimer page. Otherwise, a disclaimer page whose contents come from Dcl
+		is shown before the user clicks his way to the external site. Dont pass the encoded URL in this case.
+		*/
+		if (isParamNull(funcArea) || isParamNull(context))
+		{
+			nbDir.openAuxContentWindowMed(url, false);
+		}
+		else
+		{
+			var qryPrms = "funcArea=" + funcArea + "&context=" + context + "&url=" +
+				encodeURL + "&pageLayout=legaldisclaimer" + "&popupInd=" + popupindicator;
+			linkViaXrouter("es.legal.disclaimer", qryPrms, true);
+		}
+	}
+	catch (e)
+	{
+		alert("Unable to open external site, due to technical issues");
+	}
+}
+
+// NetBenefits supported browser list
+function nbSupportedBrowsers()
+{
+	var url = "https://www.fidelity.com/psw/supported_browsers.html";
+	nbDir.returnOpenAuxApplicationWindow(url, false);
+}
+
+function openILIPopup(path)
+{
+	nbDir.returnOpenAuxApplicationWindow(path, true);
+}
+
+/*
+This function provides common disclaimer functionality to access any/all third party sites. It
+provides various flexibilities that may suit requirements as close as possible. It
+assumes that a Javascript disclaimer message has to be shown before launching the site URL.
+
+Function Parameters are as follows -
+i. string msg - Mandatory disclaimer message designed for DCL driven messages, but static messages can also be supplied.
+
+ii. string destURL - Mandatory. URL to the third party site(or internal URL)
+
+iii. boolean mode - Mandatory. Speaks about the update mode
+
+iv. boolean popup - Mandatory. True indicates a new window(pop up) as the target window.
+
+v. string targetFrame - Optional. Gets evaluated only if popup = false. This defines the target frame for the third party site URL(or internal URL). Pass the reference object as the target frame. For example Ref object for MainApp frame or the Content frame
+
+vi. string windowType - Mandatory if popup parameter is flagged as true. The constant defined for windows mgmt function e.g. nbDir.WINDOW_TYPE_AUX_APPLICATION. This defines what size/type of Window to open.
+
+vii. boolean reusability - Optional parameter. Flag to reuse the popup window, parameter has to be of type boolean. Defaulted to true.
+
+This function pop ups a JS 'Confirm' Window. Shows the disclaimer message with an OK & Cancel button.
+If Cancel button was clicked, nothing happens. It stays in the current page. If OK was clicked, it
+tries to launch the third party site URL. Sometimes it may be required to log
+a click-stream entry before launching the third party site URL. In such a scenario, one can provide
+an internal URL.
+
+Before launching the URL, it tries to figure out the target window for the URL. There are 3 options -
+i. Same window
+ii. Same window but the content area
+iii. New browser window a.k.a pop up window.
+
+Function parameters that define the above are target frame & popup. Implementation example -
+	i. targetFrame is nbDir.NBMASTER.mainapp --- Same window but replaces existing page with the third
+	party site(or internal URL mentioned in the function parameter- destURL).
+	ii. targetFrame is self --- Same window but in the content area of the mainapp frame
+	iii. popup is true --- New browser window
+
+If popup parameter is true the windowType is necessary. It can be defined by using NBDirector's window type constants. NBDirector tries to open the popup window as per the defined size for that type. If it is preferred to make that popup window reusable for other future popups, set the reusability flag to true. By default its set to false.
+
+NOTE:It will return true if user selected 'OK' for the disclaimer. Else returns false
+
+*/
+
+function thirdPartyDisclaimer(msg, destURL, mode, popup, targetFrame, windowType, reusability)
+{
+	if(isParamNull(msg) || isParamNull(destURL))
+	{
+		return false;
+	}
+
+	if(!isParamBoolean(mode))
+	{
+		return false;
+	}
+
+	if(!isParamBoolean(popup))
+	{
+		popup = false;
+	}
+
+	if(!popup && (isParamNull(targetFrame) || isParamNull(targetFrame.document.location)) )
+	{
+		return false;
+	}
+
+	if(confirm(unescape(msg)))
+    	{
+
+		if(mode)
+		{
+			if(popup)
+			{
+				if(nbDir && nbDir.transferToPopup)
+				{
+					nbDir.transferToPopup(destURL, null, windowType, reusability);
+				}
+			}
+			else
+			{
+				targetFrame.document.location.href = destURL;
+			}
+		}
+		else
+		{
+			alert("This operation cannot be performed in Test Mode.");
+		}
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+
+function isParamNull(param)
+{
+	if((typeof param == "boolean") || (typeof param == "number"))
+	{
+		return false;
+	}
+
+	if((typeof param == "undefined") || param == null)
+	{
+		return true;
+	}
+	if((typeof param == "string") && (param == "null" || param == "" || param == "undefined") )
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+function isParamBoolean(param)
+{
+	if (typeof param == "boolean")
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+function showDialog(el)
+{
+	var cvr = document.getElementById("cover");
+	var dlg = document.getElementById(el);
+
+	cvr.style.display = "block";
+	cvr.style.zIndex=10;
+	dlg.style.left = "167px";
+
+	if( document.body && document.body.scrollHeight )
+	{
+		var pageHeight = document.body.scrollHeight+'px';
+	}
+	else if( document.body.offsetHeight )
+	{
+		var pageHeight = document.body.offsetHeight+'px';
+	}
+	else
+	{
+		var pageHeight='100%';
+	}
+	cvr.style.height= pageHeight;
+
+
+	formInputs = document.getElementsByTagName("select");
+	for (var i = 0; i < formInputs.length; i++)
+  		formInputs.item(i).style.visibility = 'hidden';
+}
+
+function closeDialog(el)
+{
+	var cvr = document.getElementById("cover");
+	var dlg = document.getElementById(el);
+
+	cvr.style.display = "none";
+	cvr.style.zIndex=0;
+	dlg.style.left = "-2000px";
+
+	formInputs = document.getElementsByTagName("select");
+	for (var i = 0; i < formInputs.length; i++)
+  		formInputs.item(i).style.visibility = 'visible';
+}
+/*Added function related to Timeout enhancement.*/
+
+function getViewportWidth(doc) {
+  var width = 0;
+  if( doc.documentElement && doc.documentElement.clientWidth ) {
+    width = doc.documentElement.clientWidth;
+  }
+  else if( doc.body && doc.body.clientWidth ) {
+    width = doc.body.clientWidth;
+  }
+  else if( window.innerWidth ) {
+    width = window.innerWidth - 18;
+  }
+  return width;
+}
+function getViewportHeight(doc) {
+  var height = 0;
+  if( doc.documentElement && doc.documentElement.clientHeight ) {
+    height = doc.documentElement.clientHeight;
+  }
+  else if( doc.body && doc.body.clientHeight ) {
+    height = doc.body.clientHeight;
+  }
+  else if( window.innerHeight ) {
+    height = window.innerHeight - 18;
+  }
+  return height;
+}
+
+function getViewportScrollX(doc) {
+  var scrollX = 0;
+ if( doc.documentElement && doc.documentElement.scrollLeft ) {
+    scrollX = doc.documentElement.scrollLeft;
+  }
+ else if( doc.body && doc.body.scrollLeft ) {
+    scrollX = doc.body.scrollLeft;
+  }
+  else if( window.pageXOffset ) {
+    scrollX = window.pageXOffset;
+  }
+  else if( window.scrollX ) {
+    scrollX = window.scrollX;
+  }
+  return scrollX;
+}
+
+function getViewportScrollY(doc) {
+  var scrollY = 0;
+  if( doc.documentElement && doc.documentElement.scrollTop ) {
+    scrollY = doc.documentElement.scrollTop;
+  }
+  else if( doc.body && doc.body.scrollTop ) {
+    scrollY = doc.body.scrollTop;
+  }
+  else if( window.pageYOffset ) {
+    scrollY = window.pageYOffset;
+  }
+  else if( window.scrollY ) {
+    scrollY = window.scrollY;
+  }
+  return scrollY;
+}
+function showTimeoutDlg(doc, el)
+{
+	//Get Currently focused element
+	curFocus = document.activeElement;
+	// cover for all frames
+	coverAllFrames(nbDir.NBMASTER);
+	findAndDisableDropDown(doc);
+	var dlg = doc.getElementById(el);
+	if (! isParamNull(dlg))
+	{
+		var hPos = Math.round(getViewportScrollX(doc)+((getViewportWidth(doc)-375)/2));
+		var vPos = Math.round(getViewportScrollY(doc)+((getViewportHeight(doc)-190)/2));
+		hPos = (hPos < 0)?0:hPos;
+		vPos = (vPos < 0)?0:vPos;
+		dlg.style.top = vPos + "px";
+		dlg.style.left = hPos + "px";
+		dlg.innerHTML = private_getPopupContent();
+		dlg.style.display="block";
+		$('#sessionContinue').focus();
+		bindKeyDownEvents();
+	}
+}
+
+function coverAllFrames(frm)
+{
+	try
+	{
+		var l = frm.location.href;
+		var cvrFrm = frm.document.getElementById("tocover");
+		if (!isParamNull(cvrFrm))
+		{
+			cvrFrm.style.display = "block";
+			cvrFrm.style.zIndex=10;
+			cvrFrm.style.height = getPageHeight(frm.document);
+			cvrFrm.style.width = getViewportWidth(frm.document);
+			cvrFrm.setAttribute("aria-hidden", "true");
+		}
+		if (frm.frames)
+		{
+		var iFramesLength = frm.frames.length;
+		if (iFramesLength != 0)
+		{
+			for(var i=0;i<iFramesLength;i++)
+			{
+				coverAllFrames(frm.frames[i]);
+			}
+		}
+	}
+	}
+	catch(e)
+	{
+		if (frm.frames)
+		{
+		var iFramesLength = frm.frames.length;
+		if (iFramesLength != 0)
+		{
+			for(var i=0;i<iFramesLength;i++)
+			{
+				coverAllFrames(frm.frames[i]);
+				}
+			}
+		}
+	}
+}
+
+function getPageHeight(doc)
+{
+	if(doc.body && doc.body.scrollHeight )
+	{
+		var pageHeight = doc.body.scrollHeight+'px';
+	}
+	else if(doc.body && doc.body.offsetHeight )
+	{
+		var pageHeight = doc.body.offsetHeight+'px';
+	}
+	else
+	{
+		var pageHeight='100%';
+	}
+	return pageHeight;
+}
+function closeTimeoutDlg(doc, el)
+{
+	var dlg = doc.getElementById(el);
+	if (! isParamNull(dlg))
+	{
+		dlg.style.display="none";
+	}
+	//uncover for all frames
+	uncoverAllFrames(nbDir.NBMASTER);
+	//return focus to previously focused element
+	if(curFocus!="")
+	{
+		curFocus.focus();
+	}
+	findAndEnableDropDown(doc);
+}
+
+
+function uncoverAllFrames(frm)
+{
+
+	try
+	{
+	   if(frm && frm.location){
+		var l = frm.location.href;
+		var cvrFrm = frm.document.getElementById("tocover");
+		if (!isParamNull(cvrFrm))
+		{
+			cvrFrm.style.display = "none";
+			cvrFrm.style.zIndex=0;
+			cvrFrm.setAttribute("aria-hidden", "false");	
+		}
+		if (frm.frames)
+		{
+			var iFramesLength = frm.frames.length;
+			if (iFramesLength != 0)
+			{
+				for(var i=0;i<iFramesLength;i++)
+				{
+					uncoverAllFrames(frm.frames[i]);
+				}
+			}
+		}
+	   }
+	}
+	catch(e)
+	{
+		if (frm.frames)
+		{
+		var iFramesLength = frm.frames.length;
+		if (iFramesLength != 0)
+		{
+			for(var i=0;i<iFramesLength;i++)
+			{
+				uncoverAllFrames(frm.frames[i]);
+				}
+			}
+		}
+	}
+
+}
+function findAndDisableDropDown(doc)
+{
+	var selectBoxes = doc.getElementsByTagName("SELECT");
+	if (selectBoxes)
+	{
+		var selLen = selectBoxes.length;
+		for (var i=0; i<selLen; i++)
+		{
+			var selBox = selectBoxes[i];
+			selBox.style.visibility = "hidden";
+		}
+	}
+}
+
+function findAndEnableDropDown(doc)
+{
+	var selectBoxes = doc.getElementsByTagName("SELECT");
+	if (selectBoxes)
+	{
+		var selLen = selectBoxes.length;
+		for (var i=0; i<selLen; i++)
+		{
+			var selBox = selectBoxes[i];
+			selBox.style.visibility = "visible";
+		}
+	}
+}
+
+function linkToFrameless(ngFramelessPage, popupWindow)
+{
+	var nbDir = getNbDirector();
+
+	if (nbDir && nbDir.NBMASTER)
+	{
+		if (!isParamNull(popupWindow) && ((popupWindow == true) || (popupWindow == "true")))
+		{
+			nbDir.openAuxContentWindowMed(ngFramelessPage, false);
+		}
+		else
+		{
+			nbDir.NBMASTER.location.href = ngFramelessPage;
+		}
+	}
+	else
+	{
+		self.location.href = ngFramelessPage;
+	}
+}
+
+function highlightOnFocus(element)
+{
+	element.style.outline="blue 1px solid";
+}
+function noHighlightOnBlur(element)
+{
+	element.style.outline="";
+}
+
+function bindKeyDownEvents()
+{
+	$('#sessionContinue').on('keydown',function(e) {
+		if(e.which == 9) {
+			if(e.shiftKey) {
+				e.preventDefault();
+				$('#sessionLogout').focus();
+			}
+		}
+	});	
+			
+	$('#sessionLogout').on('keydown',function(e) {
+		if(e.which == 9 && !e.shiftKey) {
+			e.preventDefault();
+			$('#sessionContinue').focus();
+		}
+	});
+}

@@ -1,0 +1,119 @@
+package asdasd.zzaa;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.parser.Parser;
+import org.jsoup.select.Elements;
+
+import com.yodlee.mgc.jsoup.JsoupHTMLParser;
+
+public class test {
+
+	public static void main(String[] args) throws IOException {
+		// TODO Auto-generated method stub
+
+		test A = new test();
+		A.getResponseData("notWorking.html");
+	}
+
+	public void getResponseData(String fileName) throws IOException {
+		File inputFile = new File("src/main/java/asdasd/zzaa/"+fileName);
+		Document document = Jsoup.parse(new FileInputStream(inputFile), "UTF-8","");
+		Element dump=getDumpElem(document);
+		String siteXml=getSiteXML(document);
+		System.out.println("nkash: printing dump");
+		//System.out.println(dump);
+		System.out.println("nkash: done printing dump");
+		System.out.println("nkash: printing siteXML");
+		System.out.println(siteXml);
+		System.out.println("nkash: done printing siteXMl");
+		/*if(siteXml.trim()=="")
+		{
+			BufferedWriter  writer = null;
+			try
+			{
+				writer = new BufferedWriter( new FileWriter("src/main/java/asdasd/zzaa/holla.txt"));
+				writer.write(document.toString());
+				File sourceFile=new File("src/main/java/asdasd/zzaa/holla.txt");
+				Document doc=Jsoup.parse(new FileInputStream(sourceFile), "UTF-8","",Parser.xmlParser());
+				siteXml=getSiteXML(doc);
+				System.out.println("nkash: inside if block trying to print again");
+				System.out.println(siteXml);
+				System.out.println("nkash: done 2nd attemp on print");
+				
+			}
+			catch ( IOException e)
+			{
+				System.out.println("couldnt do buffer stuff");
+			}
+		}*/
+		if(siteXml.trim().toString().equals(""))
+		{
+			if(JsoupHTMLParser.hasFrames(doc)){
+				
+			}
+		}
+		
+
+
+	}
+
+	public Element getDumpElem(Document document){
+		Elements dumps = document.select("dumps");
+		Document dumpDoc = document;
+		if (dumps.size() > 0) {
+			dumpDoc = Jsoup.parse(dumps.get(0).text(),"",Parser.xmlParser());
+		}
+
+		Elements dumpElems = dumpDoc.select("table[id=dumptable]");
+		if(!dumpElems.isEmpty()){
+			return dumpElems.get(0);
+		}
+		System.out.println("nkash: done getDump");
+		return document;
+	}
+	public  String getSiteXML(Element dumpElem){
+		String siteXML = null;
+		if((siteXML==null || siteXML.isEmpty()) && dumpElem!=null){
+			siteXML = getValue(dumpElem, "td[class=HTMLMessageConveter]"+":contains(<site name)>pre","text");
+		}
+
+
+		System.out.println("nkash: done getSiteXML");
+		return siteXML;
+	}
+	public String getValue(Element respEle,String path,String attr){
+		Elements eles = respEle.select(path);
+		System.out.println("nkash: getting getValue");
+		if(!eles.isEmpty()){
+			Element ele = eles.get(0);
+			String result = null;
+			switch (attr) {
+			case "text":
+				result = ele.text();
+				break;
+			case "innerHTML":
+				result = ele.outerHtml();
+				break;
+			case "outerHTML":
+				result = ele.html();
+				break;
+			default:
+				result = ele.text();
+				break;
+			}
+			return result;
+		}
+		return "";
+	} 
+
+}
+
+

@@ -1,0 +1,33 @@
+ChartBootstrapper.addLoadedModules(["require","jquery"]);
+
+ChartBootstrapper.bootstrap( function (){
+	 miniChartObj(".miniChart-dji-container",".DJI");
+	 miniChartObj(".miniChart-ixic-container",".IXIC");
+	 miniChartObj(".miniChart-spx-container",".SPX");
+	}
+);
+
+function miniChartObj (selector, symbol){
+	var chartConfig = JSON.parse(JSON.stringify(MiniChartConfiguration));
+	// chartConfig.getUuid = MiniChartConfiguration.getUuid;
+	chartConfig.watermarkOpacity = 0;
+	chartConfig.showTimeframes = false;
+	chartConfig.hideYAxis = true;
+	chartConfig.timeframeDayPrecision = "minute";
+	chartConfig.showTrackball = false;
+	chartConfig.hidePreviousClose = true;
+	chartConfig.noIntradayPadding = true;
+	chartConfig.options.mountainColor = "#EDEDED";
+	chartConfig.options.mountainLineColor = "#7F7F7F";
+	chartConfig.options.mountainFilledWithFixedColor = true;
+	chartConfig.HistoricalDataService.UseCache = true;
+	chartConfig.HistoricalDataService.Uuid = USER_MID;
+	chartConfig.HistoricalDataService.ProductId = "oce";
+	chartConfig.defaultChartType = Fmr_StockChart_ChartType.Mountain;
+	var viewModel = createMiniChart(selector,chartConfig);
+	viewModel.setShowVerticalGridLines( false );
+	var chart = viewModel.getChart();
+ 	var divider = new LastDayDivider( chart );
+ 	chart.getPricePane().addPlotObject( divider );
+	viewModel.refresh(symbol);
+}

@@ -1,0 +1,1354 @@
+window.name = "nbHome";
+
+var tNBD = new NBDirector(this);
+
+var NBDirectorLite = tNBD;
+
+function NBDirector(mainframe) {
+	this.nbHome = mainframe;
+}
+
+tNBD.NBMASTER = this;
+
+var isDeframed = true;
+
+tNBD.TOP_FRM = this;
+
+tNBD.NBMASTER.realm = getRealm(); 
+var prefixRealm = "/" +  tNBD.NBMASTER.realm;
+
+function NBMASTERForPopup()
+{
+	var intapp = null;
+	var mainapp = null;
+}
+
+tNBD.NOAPP_ID = -1;
+tNBD.HOME_ID = 0;
+tNBD.SAVINGS_ID = 1;
+tNBD.BENEFITS_ID = 2;
+tNBD.PENSION_ID = 3;
+tNBD.PLANNING_ID = 4;
+tNBD.PAYROLL_ID = 5;
+tNBD.LIFE_EVENTS_ID = 6;
+tNBD.PROFILE_ID = 8;
+
+tNBD.NO_STATE =-1;
+tNBD.INIT_STATE = 0 ;
+tNBD.MODAL_STATE = 1 ;
+tNBD.TAB_STATE =2 ;
+
+tNBD.TAB_HOME_ID = 1 ;
+tNBD.TAB_SAVINGS_AND_RETIREMENT_ID = 2 ;
+
+tNBD.TAB_SAVINGS_ID =2 ;
+tNBD.TAB_PENSION_ID =2;
+tNBD.TAB_PLANNING_ID =2 ;
+tNBD.TAB_BENEFITS_ID =3;
+tNBD.TAB_PAYROLL_ID =4;
+tNBD.TAB_PROFILE_ID =5;
+
+var highlightedTab = tNBD.TAB_HOME_ID;
+var curState = tNBD.INIT_STATE;
+
+var noOfTabs = 5;
+var validTabsArray = new Array(noOfTabs);
+var tabPropsSize = 2;
+var TAB_ID_INDEX = 0;
+var TAB_URL_INDEX = 1;
+
+validTabsArray[0] = new Array(tabPropsSize);
+validTabsArray[0][TAB_ID_INDEX] = 1;
+validTabsArray[0][TAB_URL_INDEX] = prefixRealm + '/navstation/navigation/app/home';
+
+validTabsArray[1] = new Array(tabPropsSize);
+validTabsArray[1][TAB_ID_INDEX] = 2;
+validTabsArray[1][TAB_URL_INDEX] = prefixRealm + '/employeeservices/savingsretirement/landing';
+
+validTabsArray[2] = new Array(tabPropsSize);
+validTabsArray[2][TAB_ID_INDEX] = 3;
+validTabsArray[2][TAB_URL_INDEX] = prefixRealm + '/healthandinsurance/enter/landing';
+
+validTabsArray[3] = new Array(tabPropsSize);
+validTabsArray[3][TAB_ID_INDEX] = 4;
+validTabsArray[3][TAB_URL_INDEX] = prefixRealm + '/ecmhrp/entry/ecmNbStart?action=Pay';
+
+validTabsArray[4] = new Array(tabPropsSize);
+validTabsArray[4][TAB_ID_INDEX] = 5;
+validTabsArray[4][TAB_URL_INDEX] = prefixRealm + '/employeeservices/profile/displayOverview';
+
+var EMPTY_STRING = "";
+var NB_LOGO = "/images/clientlogos/nblogo.gif";
+var DEF_NO_APP_HELP_MSG = "No help is available for this topic";
+
+var eLearningTimerID = 0;
+var eLearningTimerStart = null;
+
+var frame_snap_disabled = false;
+
+var retail_modal_navbar_loaded = false;
+
+tNBD.NS_EVENT_COOKIE_NAME = "nsEvent";
+tNBD.NS_EVENT_PARAM_NAME = "nsEvent";
+
+tNBD.NS_EVENT_FIRST_TIME = "first";
+tNBD.NS_EVENT_REFRESH = "refresh";
+tNBD.NS_EVENT_TABCLICK = "tabclick";
+tNBD.NS_EVENT_LOGOUT = "logout";
+tNBD.NS_EVENT_TIMEOUT = "timeout";
+
+var CHAR_EQUALS_SIGN = "=";
+
+var THIRTY_SECS = 30 * 1000;
+var COOKIE_EXPIRY_TIME = THIRTY_SECS;
+
+var TARGET_TOP_PARAM = "NavigationHelper.TARGET_TOP_PARAM";
+tNBD.TARGET_TOP_PARAM = TARGET_TOP_PARAM;
+
+tNBD.WINDOW_TYPE_AUX_APPLICATION = "AAW";
+tNBD.WINDOW_TYPE_AUX_CONTENT = "ACW";
+tNBD.WINDOW_TYPE_EXTERNAL_SITE = "ESW";
+tNBD.WINDOW_TYPE_EXTERNAL_UNMANAGED = "EUW";
+tNBD.WINDOW_TYPE_GENERIC_CUSTOMIZABLE = "GCW";
+tNBD.WINDOW_TYPE_AUX_CONTENT_MED = "ACW2";
+tNBD.WINDOW_TYPE_QUOTE = "QTW";
+tNBD.WINDOW_TYPE_HELP = "HLPW";
+tNBD.WINDOW_TYPE_GLOSSARY = "GLSW";
+tNBD.WINDOW_TYPE_CUST_SERVICE = "CSW";
+tNBD.WINDOW_TYPE_EXTERNAL_CONTENT = "ECW";
+tNBD.WINDOW_TYPE_AUX_INFO = "AIW";
+tNBD.WINDOW_TYPE_EPROSPECTUS = "EPRW";
+tNBD.WINDOW_TYPE_FPP = "FPPW";
+
+var MSG_TOO_MANY_OPEN_WINDOWS = "Sorry, there are currently too many popup windows open.  Please close one of the existing windows, and try reopening the new window again.";
+var WINDOW_ATTR_REUSABLE = "reusable";
+var WINDOW_ATTR_NONREUSABLE = "nonreusable";
+var WINDOW_IND_RESTORED = true;  
+var WINDOW_IND_CREATED = false;  
+var DUMMY_TIMESTAMP = null;  
+var COOKIE_REFS_DELIMITER = "&";
+var COOKIE_REFS_KEY_DELIMITER = "$";
+var COOKIE_ATTRIBS_DELIMITER = "~";
+var COOKIE_PROPS_DELIMITER = ",";
+var COOKIE_WINREFS_NAME = "NBWR";  
+var COOKIE_FRAMEREFS_NAME = "NBFR";  
+var COOKIE_REFRESH_KEY_NAME = "key";  
+var COOKIE_REFRESH_TAB_NAME = "tab"; 
+var COOKIE_EXPIRED_VALUE = "expired";  
+var COOKIE_BLANK_VALUE = " ";  
+var PARAM_IN_CHILD_WINDOW = "inChildWindow=";
+var CHAR_QUESTION_MARK = "?";
+var CHAR_HASH_SIGN = "#";
+var CHAR_AMPERSAND_SIGN = "&";
+var CHAR_LETTER_Y = "Y";
+var PDF_FILE_EXT = ".pdf";
+
+var INDEX_WINDOW_REF = 0;
+var INDEX_WINDOW_TYPE = 1;
+var INDEX_WINDOW_URL = 2;
+var INDEX_WINDOW_REUSABLE = 3;
+var INDEX_WINDOW_TIMESTAMP = 4;
+var INDEX_WINDOW_PROPS = 5;
+
+var maxNbrPopups = 5;
+var nbrPopupWindowProps = 6;
+var popupWindowArray = new Array(maxNbrPopups);
+var currentPopupIndex = 0;
+
+var windowsRefsPersistableValue = EMPTY_STRING;
+
+var nsEvent = tNBD.NS_EVENT_FIRST_TIME;
+if (getCookie(tNBD.NS_EVENT_COOKIE_NAME) != null)
+{
+	nsEvent = getCookie(tNBD.NS_EVENT_COOKIE_NAME);
+	clearCookie(tNBD.NS_EVENT_COOKIE_NAME);
+}
+
+function setCookie(cookie)
+{
+	self.document.cookie = cookie;
+}
+
+function getCookie(name)
+{
+	var result = null;
+	var cook = " " + document.cookie + ";";
+	var searchName = " " + name + "=";
+	var startOfCookie = cook.indexOf(searchName);
+	var endOfCookie;
+	if (startOfCookie != -1)
+	{
+		startOfCookie += searchName.length;
+		endOfCookie = cook.indexOf(";", startOfCookie);
+		result = unescape(cook.substring(startOfCookie, endOfCookie));
+	}
+	return result;
+}
+
+function clearCookie(name)
+{
+	var threeDays = 3 * 24 * 60 * 60 * 1000;
+	var expDate = new Date();
+	expDate.setTime (expDate.getTime() - threeDays);
+	document.cookie = name + "=Die; expires=" + expDate.toGMTString();
+}
+
+for (var x=0; x<maxNbrPopups; x++)
+{
+	popupWindowArray[x] = new Array(nbrPopupWindowProps);
+}
+
+NBDirector.prototype.showLogo = function(logo) 
+{
+};
+
+NBDirector.prototype.showNBLogo = function() 
+{
+};
+
+NBDirector.prototype.showLogout = function(newState) 
+{
+};
+
+NBDirector.prototype.showHelp = function(newState) 
+{
+};
+
+NBDirector.prototype.showSearch = function(newState) 
+{
+};
+
+NBDirector.prototype.showSMCLink = function(newState) 
+{
+};
+
+NBDirector.prototype.showFidelityLink = function(newState) 
+{
+};
+
+NBDirector.prototype.callAppHelp = function(noHelpMsg) 
+{
+	popupWindow(this.help, "Help");
+};
+
+function private_checkAccess (win, noAccessHandler, accessHandler) 
+{
+	try
+	{
+		var l = win.location.href;
+		return accessHandler();
+	}
+	catch(e)
+	{
+		return noAccessHandler();
+	}
+}
+
+NBDirector.prototype.logout = function(callMainApp, redirectFlag) 
+{
+	if(typeof explicitLogout == "function") 
+	{
+		explicitLogout(true);
+	}
+	else
+	{
+	    var tempRealmWithoutSlash =  tNBD.NBMASTER.realm;
+		var logout_url =  "/Catalina/LongBeach?Command=LOGOUT&Realm=" + tempRealmWithoutSlash;
+		self.document.location.replace(logout_url);
+	}
+};
+
+function private_isCurrentTab_SR(appln)
+{
+	return false;
+}
+
+NBDirector.prototype.raise_alert = function(alertType, eventId, eventArgs)
+{
+	if(proxy_raiseAlert)
+	{
+		proxy_raiseAlert(alertType, eventId, eventArgs);
+	}
+}
+
+NBDirector.prototype.clearNBSession= function() 
+{
+	private_deleteCookies();
+	private_closePopups();
+}
+
+function private_deleteCookies()
+{
+	private_deleteNSCookies();
+}
+
+function private_deleteNSCookies()
+{
+	clearCookie("CID");
+}
+
+function private_closePopups()
+{
+	private_closeWindowsRefs();
+}
+
+NBDirector.prototype.highlightTab = function(tabId) 
+{
+};
+
+NBDirector.prototype.isModal = function() 
+{
+	return (curState == NBDirector.MODAL_STATE);
+};
+
+function private_getCurState()
+{
+	return curState;
+}
+
+NBDirector.prototype.hasTab = function(logicalTabId) 
+{
+	return true;
+};
+
+
+NBDirector.prototype.startELearningTimer = function(cmExpiresSecondinMillis) 
+{
+	eLearningTimerStart = new Date();
+   	eLearningTimerID  = setTimeout("private_updateSessionTimeOut()", cmExpiresSecondinMillis*0.90);
+};
+
+function private_updateSessionTimeOut()
+{
+	top.focus();
+	var msg = "Your NetBenefits session will timeout soon.\n" +
+		    "To keep your session open, click OK.\n" +
+		    "Clicking Cancel will end your NetBenefits session.\n";
+	if(confirm(msg))
+	{
+		var protocol = location.protocol;
+		var hostname = location.hostname;
+		var reloadUrl = protocol + "//" + hostname + "/" + tNBD.getRealm() + "/navstation/transfer?option=C2LRelaunch";
+		tNBD.stopELearningTimer();
+		top.frames[1].location = reloadUrl;
+	}
+	else
+	{
+		tNBD.stopELearningTimer();
+	}
+}
+
+NBDirector.prototype.stopELearningTimer = function() 
+{
+	clearTimeout(eLearningTimerID);
+	eLearningTimerID=0;
+};
+
+NBDirector.prototype.goModal = function(titleName) 
+{
+	goModal(titleName);
+};
+
+NBDirector.prototype.goNonModal = function(logicalTabId) 
+{
+
+	highlightedTab = logicalTabId;
+	goNonModal(logicalTabId);
+	
+};
+
+NBDirector.prototype.setCurrentDate = function() 
+{
+};
+
+NBDirector.prototype.setParticipantName = function(firstName, middleName, lastName, fullName, repaintUnterbar) 
+{
+};
+
+NBDirector.prototype.getClientId = function(stripSpaces) 
+{
+	return "";
+};
+
+NBDirector.prototype.getRealm = function() 
+{
+	return tNBD.NBMASTER.realm;
+};
+
+NBDirector.prototype.getMode = function()  
+{
+};
+
+NBDirector.prototype.getCurAppId = function()  
+{
+};
+
+NBDirector.prototype.setCurAppId = function(appId) 
+{
+};
+
+NBDirector.prototype.setCurState = function(state) 
+{
+	curState = state;
+};
+
+NBDirector.prototype.getINHEnabledDCPlans = function() 
+{
+	return "";
+};
+
+NBDirector.prototype.isInCollabSession = function() 
+{
+	return false;
+};
+
+
+NBDirector.prototype.showCustService = function(newState) 
+{
+};
+
+NBDirector.prototype.setCS_LoadPage = function(newValue) 
+{
+};
+
+NBDirector.prototype.setCS_enabled = function(newValue) 
+{
+};
+
+NBDirector.prototype.isCS_enabled = function() 
+{
+};
+
+NBDirector.prototype.showCustServIfValid = function(strCustServHref, strPath, strRealm) 
+{
+};
+
+NBDirector.prototype.launchCustServiceWindow = function(url) 
+{
+
+
+};
+
+NBDirector.prototype.goToINHWelcomePage = function() 
+{
+	return "";
+};
+
+NBDirector.prototype.updateNavState = function(appId) 
+{
+};
+
+NBDirector.prototype.getTabDefaultURL = function(logicalTabId) 
+{
+	var tabURL = "";
+	if (isParamNull(logicalTabId))
+	{
+		return "";
+	}
+
+	for (var j=0; j < noOfTabs; j++) 
+	{	
+		var tabId = validTabsArray[j][TAB_ID_INDEX];
+		if (tabId == logicalTabId)
+		{
+			tabURL = validTabsArray[j][TAB_URL_INDEX];
+		}
+	}
+	
+	return tabURL;
+};
+
+NBDirector.prototype.getCurrentTabDefaultURL = function() 
+{
+	tNBD.getTabDefaultURL(highlightedTab);
+};
+
+NBDirector.prototype.setCookie = function(name, value) 
+{
+	var cookieNameValue = name + "=" + value;
+	setCookie(cookieNameValue);
+};
+
+NBDirector.prototype.getCookie = function(name) 
+{
+	return getCookie(name);
+};
+
+NBDirector.prototype.openAuxApplicationWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnOpenAuxApplicationWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnOpenAuxApplicationWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_AUX_APPLICATION, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "617", "380", "80", "80", "no", "no", "no", "yes", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openAuxContentWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnOpenAuxContentWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnOpenAuxContentWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_AUX_CONTENT, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "245", "420", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openExternalSiteWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnOpenExternalSiteWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnOpenExternalSiteWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_EXTERNAL_SITE, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "617", "380", "80", "80", "no", "yes", "yes", "yes", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openExternalUnmanagedWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnOpenExternalUnmanagedWindow(url, reusability, windowHndl);
+};
+
+
+NBDirector.prototype.returnOpenExternalUnmanagedWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_EXTERNAL_UNMANAGED, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "617", "380", "80", "80", "no", "yes", "yes", "yes", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openGenericCustomizableWindow = function(url, reusability, inner_width, inner_height, x_coordinate, y_coordinate, menubar, toolbar, location, status, scrollbars, resizable, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnOpenGenericCustomizableWindow(url, reusability, inner_width, inner_height, x_coordinate, y_coordinate, menubar, toolbar, location, status, scrollbars, resizable, windowHndl);
+};
+
+NBDirector.prototype.returnOpenGenericCustomizableWindow = function(url, reusability, inner_width, inner_height, x_coordinate, y_coordinate, menubar, toolbar, location, status, scrollbars, resizable, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_GENERIC_CUSTOMIZABLE, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, inner_width, inner_height, x_coordinate, y_coordinate, menubar, toolbar, location, status, scrollbars, resizable, windowHndl);
+};
+
+NBDirector.prototype.openAuxContentWindowMed = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnOpenAuxContentWindowMed(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnOpenAuxContentWindowMed = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_AUX_CONTENT_MED, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "422", "380", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openQuoteWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnQuoteWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnQuoteWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_QUOTE, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "290", "400", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openHelpWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnHelpWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnHelpWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_HELP, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "480", "480", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openGlossaryWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnGlossaryWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnGlossaryWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_GLOSSARY, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "500", "350", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openCustSvcWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnCustSvcWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnCustSvcWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_CUST_SERVICE, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "550", "415", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openExternalContentWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnExternalContentWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnExternalContentWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_EXTERNAL_CONTENT, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "617", "551", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+
+NBDirector.prototype.openAuxInfoWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnAuxInfoWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnAuxInfoWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_AUX_INFO, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "640", "480", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+
+NBDirector.prototype.openProspectusWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnProspectusWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnProspectusWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_EPROSPECTUS, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "800", "480", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.openFPPWindow = function(url, reusability, windowHndl) 
+{
+	var disregardWinRef = tNBD.returnFPPWindow(url, reusability, windowHndl);
+};
+
+NBDirector.prototype.returnFPPWindow = function(url, reusability, windowHndl) 
+{
+	return private_openDefinableWindow(tNBD.WINDOW_TYPE_FPP, url, reusability, WINDOW_IND_CREATED, DUMMY_TIMESTAMP, "960", "768", "80", "80", "no", "no", "no", "no", "yes", "yes", windowHndl);
+};
+
+NBDirector.prototype.setDisableFrameCapture = function(newFlag) 
+{
+	frame_snap_disabled = newFlag;
+};
+
+NBDirector.prototype.isDisableFrameCapture = function() 
+{
+	return frame_snap_disabled;
+};
+
+NBDirector.prototype.setRetailModalNavbarLoaded = function(newFlag) 
+{
+	retail_modal_navbar_loaded = newFlag;
+};
+
+NBDirector.prototype.isRetailModalNavbarLoaded = function() 
+{
+	return retail_modal_navbar_loaded;
+};
+
+function private_openDefinableWindow(type, url, reusability, restored, timestamp, inner_width, inner_height, x_coordinate, y_coordinate, menubar, toolbar, location, status, scrollbars, resizable, windowHndl)
+{
+
+	var showPopup = true;
+	var isManagedType = true;
+
+	if (type == tNBD.WINDOW_TYPE_EXTERNAL_UNMANAGED)
+	{
+		reusability = false;
+		isManagedType=false;
+	}
+
+
+	if(isManagedType == true)
+	{
+		if (! isParamBoolean(reusability))
+		{		
+			reusability = true;
+		}
+	
+		for (var j=0; j <= maxNbrPopups; j++) 
+		{		
+			if (j == maxNbrPopups)
+			{
+				alert(MSG_TOO_MANY_OPEN_WINDOWS);
+				showPopup = false;
+			}
+			else if (isParamNull(popupWindowArray[j][INDEX_WINDOW_REF]))
+			{
+				currentPopupIndex = j;
+				break;
+			}
+			else if ((popupWindowArray[j][INDEX_WINDOW_REF] != null) && (popupWindowArray[j][INDEX_WINDOW_REF].closed))
+			{
+				if (popupWindowArray[j][INDEX_WINDOW_URL].indexOf(PDF_FILE_EXT) == -1)
+				{
+					currentPopupIndex = j;
+					break;
+				}
+				else			
+				{
+					try
+					{
+						var tLen = popupWindowArray[j][INDEX_WINDOW_REF].length;
+						if ((popupWindowArray[j][INDEX_WINDOW_TYPE] == type) && (popupWindowArray[j][INDEX_WINDOW_REUSABLE] == WINDOW_ATTR_REUSABLE) && (type != tNBD.WINDOW_TYPE_GENERIC_CUSTOMIZABLE))
+						{
+							currentPopupIndex = j;
+							break;
+						}
+					}
+					catch(e)
+					{
+						currentPopupIndex = j;
+						break;
+					}
+				}
+					
+			}
+			else if ((popupWindowArray[j][INDEX_WINDOW_TYPE] == type) && (popupWindowArray[j][INDEX_WINDOW_REUSABLE] == WINDOW_ATTR_REUSABLE) && (type != tNBD.WINDOW_TYPE_GENERIC_CUSTOMIZABLE))
+			{
+				currentPopupIndex = j;
+				
+				if (! reusability)
+				{
+					popupWindowArray[j][INDEX_WINDOW_REF].close();
+				}
+				break;
+			}
+			else if ((popupWindowArray[j][INDEX_WINDOW_TYPE] == type) && (popupWindowArray[j][INDEX_WINDOW_REUSABLE] == WINDOW_ATTR_REUSABLE) && (type == tNBD.WINDOW_TYPE_GENERIC_CUSTOMIZABLE))
+			{
+				currentPopupIndex = j;
+				popupWindowArray[j][INDEX_WINDOW_REF].close();
+				break;
+			}
+		}
+	}
+	
+	if (showPopup == true)
+	{	
+		var newUrl = url;
+		if ( (! isParamNull(url)) && 
+			type != tNBD.WINDOW_TYPE_EXTERNAL_SITE && 
+			type != tNBD.WINDOW_TYPE_EXTERNAL_CONTENT &&
+			isManagedType == true)
+		{
+			newUrl = private_addInChildWindowParameter(url);
+		}
+		
+		var props = EMPTY_STRING;
+		props += "width=" + inner_width + ",";
+		props += "height=" + inner_height + ",";
+		props += "left=" + x_coordinate + ",";
+		props += "top=" + y_coordinate + ",";
+		props += "menubar=" + menubar + ",";
+		props += "toolbar=" + toolbar + ",";
+		props += "location=" + location + ",";
+		props += "status=" + status + ",";
+		props += "scrollbars=" + scrollbars + ",";
+		props += "resizable=" + resizable;
+		
+		if(isManagedType == true)
+		{
+			var propsValues = EMPTY_STRING;
+			propsValues += inner_width + COOKIE_PROPS_DELIMITER;
+			propsValues += inner_height + COOKIE_PROPS_DELIMITER;
+			propsValues += x_coordinate + COOKIE_PROPS_DELIMITER;
+			propsValues += y_coordinate + COOKIE_PROPS_DELIMITER;
+			propsValues += menubar + COOKIE_PROPS_DELIMITER;
+			propsValues += toolbar + COOKIE_PROPS_DELIMITER;
+			propsValues += location + COOKIE_PROPS_DELIMITER;
+			propsValues += status + COOKIE_PROPS_DELIMITER;
+			propsValues += scrollbars + COOKIE_PROPS_DELIMITER;
+			propsValues += resizable;
+		}		
+
+		var reusability_str = WINDOW_ATTR_REUSABLE; 
+		var windowTitle = type
+	
+		var date = new Date();
+		var tempTimestamp = Date.parse(date.toGMTString());
+
+		if (! reusability)
+		{
+			reusability_str = WINDOW_ATTR_NONREUSABLE;
+			
+			if (restored) 
+			{	
+				tempTimestamp = timestamp;
+			}
+
+			windowTitle += "_" + tempTimestamp;
+		}
+
+		var windowRef = null;
+		if (! isParamNull(windowHndl))
+		{		
+			windowRef = windowHndl.openPopupFromPopup_ForNbDirectorUseOnly(newUrl, windowTitle, props);
+		}
+		else
+		{				
+			windowRef = window.open(newUrl, windowTitle, props);	
+		}
+
+		if(windowRef != null && isManagedType == true)
+		{
+			popupWindowArray[currentPopupIndex][INDEX_WINDOW_REF] = windowRef;
+			popupWindowArray[currentPopupIndex][INDEX_WINDOW_TYPE] = type;
+			popupWindowArray[currentPopupIndex][INDEX_WINDOW_URL] = url;
+			popupWindowArray[currentPopupIndex][INDEX_WINDOW_REUSABLE] = reusability_str;
+			popupWindowArray[currentPopupIndex][INDEX_WINDOW_TIMESTAMP] = tempTimestamp;
+			popupWindowArray[currentPopupIndex][INDEX_WINDOW_PROPS] = propsValues;
+			if (navigator.appVersion.charAt(0) != '2')
+			{		
+				if ( popupWindowArray[currentPopupIndex][INDEX_WINDOW_REF].opener == null )
+					popupWindowArray[currentPopupIndex][INDEX_WINDOW_REF].opener = self;
+	
+				if (! restored) 
+				{
+					try
+					{
+						popupWindowArray[currentPopupIndex][INDEX_WINDOW_REF].focus();
+					}
+					catch(e)
+					{
+						//do nothing
+					}
+				}
+			}
+		}
+	}	
+	return windowRef;
+}
+
+function private_closeWindowsRefs()
+{
+	for (var i = 0; i < maxNbrPopups; i++)
+	{
+		if ((popupWindowArray[i][INDEX_WINDOW_REF] != null) && (! popupWindowArray[i][INDEX_WINDOW_REF].closed))
+		{
+			popupWindowArray[i][INDEX_WINDOW_REF].close();
+			popupWindowArray[i][INDEX_WINDOW_REF] = null;
+		}
+		else if ((popupWindowArray[i][INDEX_WINDOW_REF] != null) && 
+			(popupWindowArray[i][INDEX_WINDOW_URL].indexOf(PDF_FILE_EXT) > -1) && 
+			(popupWindowArray[i][INDEX_WINDOW_REF].closed))
+		{
+			
+			try
+			{
+				var tLen = popupWindowArray[i][INDEX_WINDOW_REF].length;
+				var windowTitle = popupWindowArray[i][INDEX_WINDOW_TYPE];
+				if (WINDOW_ATTR_REUSABLE != popupWindowArray[i][INDEX_WINDOW_REUSABLE])
+				{
+					windowTitle += "_" + popupWindowArray[i][INDEX_WINDOW_TIMESTAMP]; 
+				}
+
+				var winRef = window.open(popupWindowArray[i][INDEX_WINDOW_URL], windowTitle, null);
+				winRef.close();
+
+				popupWindowArray[i][INDEX_WINDOW_REF] = null;
+			}
+			catch(e)
+			{
+				popupWindowArray[i][INDEX_WINDOW_REF] = null;
+			}
+		}
+	}	
+	
+	var windowRefsArray = new Array(maxNbrPopups);
+	var cookieValue = private_getCookie(COOKIE_WINREFS_NAME);
+	windowRefsArray = private_splitCookieByRefsDelimiter(cookieValue);
+	
+	if ((windowRefsArray != null) && (windowRefsArray.length > 0))
+	{
+		private_SetCookie(COOKIE_WINREFS_NAME, "Die", true);
+	}
+}
+
+NBDirector.prototype.persistWindowRefs = function() 
+{
+	private_persistWindowRefs();
+}
+
+function private_persistWindowRefs()
+{
+	var saveRef = false;
+	for(var i = 0; i < popupWindowArray.length; i++)
+	{
+		if ((popupWindowArray[i][INDEX_WINDOW_REF] != null) && (! popupWindowArray[i][INDEX_WINDOW_REF].closed))
+		{
+			saveRef = true;
+		}
+		else if ((popupWindowArray[i][INDEX_WINDOW_REF] != null) && 
+			(popupWindowArray[i][INDEX_WINDOW_URL].indexOf(PDF_FILE_EXT) > -1) && 
+			(popupWindowArray[i][INDEX_WINDOW_REF].closed))
+		{
+			try
+			{
+				if (isIE())
+				{
+					var tLen = popupWindowArray[i][INDEX_WINDOW_REF].length;
+					popupWindowArray[i][INDEX_WINDOW_REF] = null;
+					saveRef = true;
+				}
+				else
+				{
+					var winName = popupWindowArray[i][INDEX_WINDOW_REF].name;
+					if (! isParamNull(winName))
+					{
+						popupWindowArray[i][INDEX_WINDOW_REF] = null;
+						saveRef = true;
+					}
+					else
+					{
+						saveRef = false;
+					}
+				}
+			}
+			catch(e)
+			{
+				saveRef = false;
+			}
+		}
+		
+		if (saveRef)
+		{
+			var temp = popupWindowArray[i][INDEX_WINDOW_TYPE] + COOKIE_ATTRIBS_DELIMITER;
+			temp += popupWindowArray[i][INDEX_WINDOW_URL] + COOKIE_ATTRIBS_DELIMITER;
+			temp += popupWindowArray[i][INDEX_WINDOW_REUSABLE] + COOKIE_ATTRIBS_DELIMITER;
+			temp += popupWindowArray[i][INDEX_WINDOW_TIMESTAMP];
+			
+			if (is_Nav47or48() || isNewNav())
+			{
+				temp += COOKIE_ATTRIBS_DELIMITER + popupWindowArray[i][INDEX_WINDOW_PROPS];
+			}
+			
+			windowsRefsPersistableValue += escape(temp);
+
+			windowsRefsPersistableValue += COOKIE_REFS_DELIMITER;
+	
+			saveRef = false;
+		}
+	}
+
+	if (windowsRefsPersistableValue.length > 0)
+	{
+		windowsRefsPersistableValue = windowsRefsPersistableValue.substring(0, windowsRefsPersistableValue.length - 1)
+		private_SetCookie(COOKIE_WINREFS_NAME, windowsRefsPersistableValue, false);
+	}
+	else
+	{
+		windowsRefsPersistableValue = "";
+		private_SetCookie(COOKIE_WINREFS_NAME, windowsRefsPersistableValue, false);
+	}
+}
+
+function private_restoreWindowRefs()
+{
+	var windowRefsArray = new Array(maxNbrPopups);
+	var restored = true; 
+
+	var cookieValue = private_getCookie(COOKIE_WINREFS_NAME);
+	if (! isParamNull(cookieValue))
+	{
+	        windowRefsArray = private_splitCookieByRefsDelimiter(cookieValue);
+	}
+	else
+	{
+		windowRefsArray = null;
+	}
+		
+	if ((windowRefsArray != null) && (windowRefsArray.length > 0))
+	{
+		for(var i = 0; i < windowRefsArray.length; i++)
+		{
+			windowRefsArray[i] = unescape(windowRefsArray[i]);
+
+			if(windowRefsArray[i].split == null)
+			{
+				windowRefsArray[i] = split(windowRefsArray[i], COOKIE_ATTRIBS_DELIMITER);
+			}
+			else
+			{
+				windowRefsArray[i] = windowRefsArray[i].split(COOKIE_ATTRIBS_DELIMITER);
+			}
+			
+			var reusability = false;
+			if (windowRefsArray[i][2] == WINDOW_ATTR_REUSABLE)
+			{
+				reusability = true;
+			}
+
+			if ((! is_Nav47or48()) && (! isNewNav())) 
+			{
+				private_openDefinableWindow(windowRefsArray[i][0], windowRefsArray[i][1], reusability, WINDOW_IND_RESTORED, windowRefsArray[i][3]);
+			}
+			else  
+			{
+				var tempArray = new Array(maxNbrPopups);
+				if(windowRefsArray[i][4].split == null)
+				{
+					tempArray = split(windowRefsArray[i][4], COOKIE_PROPS_DELIMITER);
+				}
+				else
+				{
+					tempArray = windowRefsArray[i][4].split(COOKIE_PROPS_DELIMITER);
+				}
+				private_openDefinableWindow(windowRefsArray[i][0], windowRefsArray[i][1], reusability, WINDOW_IND_RESTORED, windowRefsArray[i][3], tempArray[0], tempArray[1], tempArray[2], tempArray[3], tempArray[4], tempArray[5], tempArray[6], tempArray[7], tempArray[8], tempArray[9]);
+			}
+		}
+		if (navigator.appVersion.charAt(0) != '2')
+		{
+			self.focus();
+		}
+	}
+}
+
+function isAnyWindowOpen()
+{
+	for(var i = 0; i < popupWindowArray.length; i++)
+	{
+		if ((popupWindowArray[i][INDEX_WINDOW_REF] != null) && (! popupWindowArray[i][INDEX_WINDOW_REF].closed))
+		{
+			return true;
+			break;
+		}
+	}
+	return false;
+}
+
+function private_splitCookieByRefsDelimiter(cookie_val)
+{
+	var a = new Array();
+	
+	if (cookie_val != null)
+	{
+		if(cookie_val.split == null)
+		{
+			a = split(cookie_val, COOKIE_REFS_DELIMITER);
+		}
+		else
+		{
+			a = cookie_val.split(COOKIE_REFS_DELIMITER);  
+		}
+	}
+	
+	return a;
+}
+
+function private_getCookie(name)
+{
+	var allcookies = self.document.cookie;
+
+	if (allcookies == EMPTY_STRING) 
+		return null;
+
+	start = allcookies.indexOf(name + '=');
+
+	if (start == -1) 
+		return null;  
+		    
+	start += COOKIE_WINREFS_NAME.length + 1; 
+	end    = allcookies.indexOf(';', start);
+		  
+	if (end == -1) 
+		end = allcookies.length;
+		    
+	return allcookies.substring(start, end);
+}
+
+function private_SetCookie(name, value, expired)
+{
+	var tempCookieNameValue = name + "=" + value;
+	if (expired)
+	{
+		var threeDays = 3 * 24 * 60 * 60 * 1000;
+		var expDate = new Date();
+		expDate.setTime (expDate.getTime() - threeDays);
+		tempCookieNameValue += "; expires=" + expDate.toGMTString();
+	}
+	
+	setCookie(tempCookieNameValue);
+}
+
+function private_addInChildWindowParameter(url)
+{
+	var popupUrl, hasQueryStr, queryStrChar, hasParamAlready, queryStrParam, hasAnchor, anchorIndex;
+	hasQueryStr = (url.indexOf(CHAR_QUESTION_MARK) >= 0);
+
+	if (hasQueryStr) 
+	{
+		queryStrChar = CHAR_AMPERSAND_SIGN;
+	}
+	else 
+	{
+		queryStrChar = CHAR_QUESTION_MARK;
+	}
+	
+	hasParamAlready = (url.indexOf(PARAM_IN_CHILD_WINDOW) >= 0);
+	anchorIndex = url.indexOf(CHAR_HASH_SIGN);
+	hasAnchor = (anchorIndex >= 0);
+	if (! hasParamAlready) 
+	{
+		if (hasAnchor) 
+		{
+			var beforeHash = url.substring(0, anchorIndex);
+			
+			var afterHash = url.substring(anchorIndex);
+			popupUrl = beforeHash + queryStrChar + PARAM_IN_CHILD_WINDOW + CHAR_LETTER_Y + afterHash;
+		}
+		else 
+		{
+			popupUrl = url + queryStrChar + PARAM_IN_CHILD_WINDOW + CHAR_LETTER_Y;
+		}
+	}
+	else 
+	{
+		popupUrl = url;
+	}
+	return popupUrl;
+}
+
+NBDirector.prototype.evalXRouterFunctionName = function(xRouterFunctionName, altURI) 
+{
+	return "";
+};
+
+NBDirector.prototype.transferTo = function(logicalFunctionName, queryParameters, targetFrame, addToBrowserHistory) 
+{
+	private_doTransfer(logicalFunctionName, queryParameters, targetFrame, addToBrowserHistory);
+};
+
+function private_doTransfer(logicalFunctionName, queryParameters, targetFrame, addToBrowserHistory)
+{
+	var destURL = private_addQueryParamsToURL(logicalFunctionName, queryParameters);
+	destURL = private_addNsEventParamToURL(destURL);
+		
+	if (isParamNull(addToBrowserHistory) || addToBrowserHistory == true)
+	{
+		targetFrame.location.href = destURL;
+	}
+	else
+	{
+		targetFrame.location.replace(destURL);
+	}
+}
+
+NBDirector.prototype.transferToPopup = function(logicalFunctionName, queryParameters, windowType, reusability, windowHndl) 
+{
+	var popupWindow = null;
+	if (! isParamNull(windowType))
+	{
+		var destURL = private_addQueryParamsToURL(logicalFunctionName, queryParameters);
+		popupWindow = private_openPopupForWindowType(destURL, windowType, reusability, windowHndl);
+	}
+	
+	return popupWindow;
+};
+
+function private_addNsEventParamToURL(url)
+{
+	var destURL = url;
+	if (destURL.indexOf(CHAR_QUESTION_MARK) == -1)
+	{
+		destURL + CHAR_QUESTION_MARK + tNBD.NS_EVENT_PARAM_NAME + CHAR_EQUALS_SIGN + nsEvent;
+	}
+	else
+	{
+		destURL + CHAR_AMPERSAND_SIGN + tNBD.NS_EVENT_PARAM_NAME + CHAR_EQUALS_SIGN + nsEvent;
+	}
+	
+	return destURL;
+}
+
+function private_addQueryParamsToURL(url, queryParameters)
+{
+	var destUrl = url;
+	if (! isParamNull(queryParameters))
+	{
+		if (destUrl.indexOf(CHAR_QUESTION_MARK) == -1)
+		{
+			destUrl = destUrl + CHAR_QUESTION_MARK + queryParameters;
+		}
+		else
+		{
+			destUrl = destUrl + CHAR_AMPERSAND_SIGN + queryParameters;
+		}
+	}
+	
+	return destUrl;
+}
+function private_openPopupForWindowType(url, windowType, reusability, windowHndl)
+{
+	var popupWindow = null;
+	if (windowType == tNBD.WINDOW_TYPE_AUX_APPLICATION)
+	{
+		popupWindow = tNBD.returnOpenAuxApplicationWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_AUX_CONTENT)
+	{
+		popupWindow = tNBD.returnOpenAuxContentWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_EXTERNAL_SITE)
+	{
+		popupWindow = tNBD.returnOpenExternalSiteWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_EXTERNAL_UNMANAGED)
+	{
+		popupWindow = tNBD.returnOpenExternalUnmanagedWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_AUX_CONTENT_MED)
+	{
+		popupWindow = tNBD.returnOpenAuxContentWindowMed(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_QUOTE)
+	{
+		popupWindow = tNBD.returnQuoteWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_HELP)
+	{
+		popupWindow = tNBD.returnHelpWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_GLOSSARY)
+	{
+		popupWindow = tNBD.returnGlossaryWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_CUST_SERVICE)
+	{
+		popupWindow = tNBD.returnCustSvcWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_EXTERNAL_CONTENT)
+	{
+		popupWindow = tNBD.returnExternalContentWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_AUX_INFO)
+	{
+		popupWindow = tNBD.returnAuxInfoWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_EPROSPECTUS)
+	{
+		popupWindow = tNBD.returnProspectusWindow(url, reusability, windowHndl);
+	}
+	else if (windowType == tNBD.WINDOW_TYPE_FPP)
+	{
+		popupWindow = tNBD.returnFPPWindow(url, reusability, windowHndl);
+	}
+
+	return popupWindow;
+}
+
+NBDirector.prototype.getMainAppForPopup = function() 
+{
+	return self;
+};
+
+self.NBDirector = tNBD;
+self.NBDirectorLite = tNBD;
+function sdlLink (url, reusability, popupInd)
+{
+	if (popupInd == false)
+	{
+		window.location.replace(url);
+	}
+	else
+	{
+		var windowType = NBDirector.WINDOW_TYPE_AUX_CONTENT_MED;
+		private_openPopupForWindowType(url, windowType, reusability);
+	}
+}
+function isParamNull(param)
+{
+	if((typeof param == "boolean") || (typeof param == "number"))
+	{
+		return false;
+	}
+	
+	if((typeof param == "undefined") || param == null)
+	{
+		return true;
+	}
+	if((typeof param == "string") && (param == "null" || param == "" || param == "undefined") )
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+function isParamBoolean(param)
+{
+	if (typeof param == "boolean")
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+// Moved from site.js -- START
+
+function advancedlink(url, disclaimerText, popupSize, referingLinkId) {
+
+    var Height;
+    var Width;
+
+    try {
+
+        // To set height & width of Popup
+        if (popupSize != '') {
+            var attributes = popupSize.split("x");
+            Height = attributes[0] + "px";
+            Width = attributes[1] + "px";
+
+        }
+
+        // If disclaimer text is not null
+        if (disclaimerText != '') {
+            // If user confirm disclaimer
+            if (confirm(disclaimerText)) {
+
+                if (popupSize == '') {
+                    document.getElementById(referingLinkId)
+                        .href = url; // open url in same window i.e. No Popup
+                } else {
+                    //Popup url in window with specific height & width
+                    window.open(url, "outSiteFidelity", 'height=' + Height + ',width=' + Width + ',toolbar=yes,menubar=yes,scrollbars=yes,resizable=yes,location=no,directories=no,status=no');
+                    stopEvent();
+
+                }
+            } else {
+                stopEvent(); // Don't let the url open as user doesn't confirm the disclaimer.
+            }
+        } else {
+            // open popup without disclaimer
+            window.open(url, "WithinFidelity", 'height=' + Height + ',width=' + Width + ',toolbar=yes,menubar=yes,scrollbars=yes,resizable=yes,location=no,directories=no,status=no');
+            stopEvent();
+
+        }
+    } catch (error) // catch exception to show error message
+    {
+        alert('Error occured while executing opeartion :' + error.description);
+        stopEvent();
+    }
+
+}
+
+function stopEvent() {
+
+    var e = getEvent();
+
+    //e.cancelBubble is supported by IE - this will kill the bubbling process.
+    e.cancelBubble = true;
+    e.returnValue = false;
+
+    //e.stopPropagation works only in Firefox.
+    if (e.stopPropagation) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    return false;
+}
+
+function getEvent() {
+
+    //if(typeof window.event  == "undefined") 
+    // return advancedlink.caller.arguments[0];
+    if (window.event) return window.event;
+    else return advancedlink.caller.arguments[0];
+}
+
+// Moved from site.js -- END

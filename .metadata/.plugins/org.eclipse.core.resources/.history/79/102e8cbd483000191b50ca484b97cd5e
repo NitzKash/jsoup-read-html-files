@@ -1,0 +1,103 @@
+package asdasd.zzaa;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.parser.Parser;
+import org.jsoup.select.Elements;
+
+public class test {
+
+	public static void main(String[] args) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+
+		test A = new test();
+		A.getResponseData("notWorkingComplete.html");
+	}
+
+	public void getResponseData(String fileName) throws IOException, InterruptedException {
+		
+		
+		
+		
+		File inputFile = new File("src/main/java/asdasd/zzaa/"+fileName);
+		Document document = Jsoup.parse(new FileInputStream(inputFile), "UTF-8","");
+		System.out.println(document.select("frame").size());
+		Element dump=getDumpElem(document);
+		String siteXml=getSiteXML(document);
+//		System.out.println(document.toString());
+//		System.out.println(document.text());
+		
+
+	}
+
+	public Element getDumpElem(Document document){
+		Elements dumps = document.select("dumps");
+		Document dumpDoc = document;
+		if (dumps.size() > 0) {
+			dumpDoc = Jsoup.parse(dumps.get(0).text(),"",Parser.xmlParser());
+		}
+
+		Elements dumpElems = dumpDoc.select("table[id=dumptable]");
+		if(!dumpElems.isEmpty()){
+			return dumpElems.get(0);
+		}
+		System.out.println("nkash: done getDump");
+		return document;
+	}
+	
+	public  String getSiteXML(Element dumpElem){
+		String siteXML = null;
+		if((siteXML==null || siteXML.isEmpty()) && dumpElem!=null){
+			siteXML = getValue(dumpElem, "td[class=HTMLMessageConveter]"+":contains(<site name)>pre","text");
+		}
+
+		if(siteXML == null || siteXML.trim().equals("")) {
+			String htmlText = dumpElem.toString();
+			System.out.println(htmlText);
+//			if(htmlText.indexOf("<pre><site name=") > 0) {
+			if(htmlText.indexOf("<pre>&lt;site nam") > 0) {
+				htmlText = htmlText.substring(htmlText.indexOf("<pre><site name="));
+//				System.out.println("Nitish>>"+htmlText);
+			}
+		}
+
+		System.out.println("nkash: done getSiteXML");
+		return siteXML;
+	}
+	public String getValue(Element respEle,String path,String attr){
+		Elements eles = respEle.select(path);
+		System.out.println("nkash: getting getValue");
+		if(!eles.isEmpty()){
+			Element ele = eles.get(0);
+			String result = null;
+			switch (attr) {
+			case "text":
+				result = ele.text();
+				break;
+			case "innerHTML":
+				result = ele.outerHtml();
+				break;
+			case "outerHTML":
+				result = ele.html();
+				break;
+			default:
+				result = ele.text();
+				break;
+			}
+			return result;
+		}
+		return "";
+	} 
+
+}
+
+

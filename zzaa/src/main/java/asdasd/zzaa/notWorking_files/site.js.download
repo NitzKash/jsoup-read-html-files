@@ -1,0 +1,2628 @@
+//Utility Functions
+function IEVersion() {
+    var _n = navigator,
+        _w = window,
+        _d = document;
+    var version = "NA";
+    var na = _n.userAgent;
+    var ieDocMode = "NA";
+    var ie8BrowserMode = "NA";
+    // Look for msie and make sure its not opera in disguise
+    if (/msie/i.test(na) && (!_w.opera)) {
+        // also check for spoofers by checking known IE objects
+        if (_w.attachEvent && _w.ActiveXObject) {
+            // Get version displayed in UA although if its IE 8 running in 7 or compat mode it will appear as 7
+            version = (na.match(/.+ie\s([\d.]+)/i) || [])[1];
+            // Its IE 8 pretending to be IE 7 or in compat mode
+            if (parseInt(version) == 7) {
+                // documentMode is only supported in IE 8 so we know if its here its really IE 8
+                if (_d.documentMode) {
+                    version = 8; //reset? change if you need to
+                    // IE in Compat mode will mention Trident in the useragent
+                    if (/trident\/\d/i.test(na)) {
+                        ie8BrowserMode = "Compat Mode";
+                        // if it doesn't then its running in IE 7 mode
+                    } else {
+                        ie8BrowserMode = "IE 7 Mode";
+                    }
+                }
+            } else if (parseInt(version) == 8) {
+                // IE 8 will always have documentMode available
+                if (_d.documentMode) {
+                    ie8BrowserMode = "IE 8 Mode";
+                }
+            }
+            // If we are in IE 8 (any mode) or previous versions of IE we check for the documentMode or compatMode for pre 8 versions
+            ieDocMode = (_d.documentMode) ? _d.documentMode : (_d.compatMode && _d.compatMode == "CSS1Compat") ? 7 : 5; //default to quirks mode IE5
+        }
+    }
+
+    return {
+        "UserAgent": na,
+        "Version": version,
+        "BrowserMode": ie8BrowserMode,
+        "DocMode": ieDocMode
+    }
+}
+
+var IEVersion = IEVersion();
+
+function addEvent(obj, type, fn) {
+
+    try {
+
+        if (obj.addEventListener) {
+
+            obj.addEventListener(type, fn, false);
+
+
+
+        } else if (obj.attachEvent) {
+
+            obj["e" + type + fn] = fn;
+
+            obj[type + fn] = function () {
+
+                obj["e" + type + fn](window.event);
+
+            }
+
+            obj.attachEvent("on" + type, obj[type + fn]);
+
+        } else {
+
+            obj["on" + type] = obj["e" + type + fn];
+
+        }
+
+    } catch (e) {
+        return;
+    }
+
+}
+
+//Attach init functions to window on load event
+addEvent(window, 'load', function () {
+
+    init();
+
+});
+
+var dataArray=new Array();
+//UTILITY FUNCTIONS
+function getAbsoluteLeft(o) {
+   oLeft = o.offsetLeft;
+   while(o.offsetParent !== null) {
+      oParent = o.offsetParent;
+      oLeft += oParent.offsetLeft;
+      o = oParent;
+      }
+   return oLeft;
+   }
+
+
+function getAbsoluteTop(o) {
+   oTop = o.offsetTop;
+   while(o.offsetParent !== null) {
+      oParent = o.offsetParent;
+      oTop += oParent.offsetTop;
+      o = oParent;
+      }
+   return oTop;
+   }
+
+
+function getElementsByClassName(classname, tag) {
+    if (!tag) tag = "*";
+    var elements = document.getElementsByTagName(tag);
+    var total_elements = elements.length;
+    var regexp = new RegExp('\\b' + classname + '\\b');
+    var class_elements = new Array();
+    // Go thru all the links seaching for the class name
+    for (var i = 0; i < total_elements; i++) {
+        var this_element = elements[i];
+        if (regexp.test(this_element.className)) {
+            class_elements.push(this_element);
+        }
+    }
+    return class_elements;
+}
+
+function attachShowHideEvents() {
+
+
+
+    var elements = getElementsByClassName("list-text");
+
+    for (i = 0; i < elements.length; i++) {
+
+        elements[i].setAttribute("href", "javascript:Zen()");
+
+        addEvent(elements[i], 'click', function () {
+
+            showHideBlock(this);
+
+        });
+
+
+
+    }
+
+
+}
+
+// the below function is edited to support banner/message carousels.
+/*
+function selectFinancialPortfolioOption(componentName, position) {
+	var financialPortfolioComponents = getElementsByClassName(componentName);
+	for(i=0; i<financialPortfolioComponents.length;i++) {
+		if  (i == position) {
+			financialPortfolioComponents[i].style.display = "block";
+		} else {
+			financialPortfolioComponents[i].style.display = "none";
+		}
+	}
+}
+*/
+// tabs for Pension & Health accounts on NetBen homepage.
+// click event is trapped; if there are carousels:
+//   they are paused, then a timer is counted down before the tab change, to prevent conflicts.
+// if there are no carousels, then tab change occurs immediately.
+function selectFinancialPortfolioOption(componentName, position) {
+    var financialPortfolioComponents = getElementsByClassName(componentName);
+    var transitionMilsec = 500; // copied from bannerCarouselSettings() in core.js
+    var selectFinancialPortfolioManipulatorHandle = false;
+    // select the new portfolio category based on tab click.
+    var selectFinancialPortfolioManipulator = function () {
+        for (i = 0; i < financialPortfolioComponents.length; i++) {
+            if (i == position) {
+                financialPortfolioComponents[i].style.display = "block";
+            } else {
+                financialPortfolioComponents[i].style.display = "none";
+            }
+        }
+        if (selectFinancialPortfolioManipulatorHandle) {
+            clearTimeout(selectFinancialPortfolioManipulatorHandle);
+        }
+    }
+    // are there carousels here that might be hidden or revealed?
+    if ($(this)
+        .hasClass('unselected') && $(this)
+        .closest('.financial-portfolio')
+        .find('.carousel-bricklet .carousel')
+        .not('.anim-disabled')
+        .length > 0) {
+        // there's a carousel.
+        $(this)
+            .closest('.financial-portfolio')
+            .find('.carousel-bricklet:visible .carousel')
+            .not('.anim-disabled')
+            .each(function () {
+            // prevent jQuery Cycle from bombing IE7 when a change occurs while hidden.
+            // http://forum.jquery.com/topic/cycle-plugin-ie7-crash-bug
+            // pause the carousel immediately, then delay the tab change...
+            //   ...to ensure that any in-progress slide changes conclude first.
+            // only visible carousels need intervention; currently-hidden carousels are already paused.
+            $(this)
+                .cycle('pause');
+        });
+        selectFinancialPortfolioManipulatorHandle = setTimeout(selectFinancialPortfolioManipulator, transitionMilsec); // defined in core.js
+    } else {
+        // no carousels; switch tabs immediately.
+        selectFinancialPortfolioManipulator();
+    }
+}
+
+function showHideBlock(element)
+
+{
+
+    try {
+
+
+
+        var parent = element.parentNode;
+
+        for (i = 0; i < parent.childNodes.length; i++) {
+
+            if (parent.childNodes[i].nodeType != 1 || parent.childNodes[i].tagName == undefined) {
+
+                parent.removeChild(parent.childNodes[i]);
+
+            }
+
+
+
+        }
+
+        var hiddenDiv = element.nextSibling;
+
+
+        if (element.className == "list-text") {
+
+            element.className = "list-text-on";
+            hiddenDiv.style.display = "block";
+            //Need to call VsTrack for each time that this link is clicked
+            VsTrack(element);
+
+        } else {
+
+            element.className = "list-text";
+            hiddenDiv.style.display = "none";
+
+        }
+
+    } catch (e) {
+        return;
+    }
+
+}
+
+function hideAccountDetails(accountDetailsFlag, optional_control) {
+    if (accountDetailsFlag == undefined) {
+        if ((document.getElementById(optional_control)
+            .innerHTML) == 'Show Values') {
+            accountDetailsFlag = 1;
+        } else {
+            accountDetailsFlag = 0;
+        }
+    }
+
+    var accountDetails = getElementsByClassName("accountDetail");
+    var accountDetailLinks = getElementsByClassName("accountDetailLink");
+
+    if (accountDetailsFlag == 0) {
+        for (i = 0; i < accountDetails.length; i++) {
+
+            if (accountDetails[i].style.display == 'inline') {
+                accountDetails[i].style.display = 'none';
+            } else {
+                accountDetails[i].style.visibility = "hidden";
+            }
+        }
+        for (i = 0; i < accountDetailLinks.length; i++) {
+            accountDetailLinks[i].innerHTML = "Show Values";
+        }
+    } else {
+        for (i = 0; i < accountDetails.length; i++) {
+            if (accountDetails[i].style.display == 'none') {
+                accountDetails[i].style.display = 'inline';
+            } else {
+                accountDetails[i].style.visibility = "visible";
+            }
+        }
+
+        for (i = 0; i < accountDetailLinks.length; i++) {
+            accountDetailLinks[i].innerHTML = "Hide Values";
+        }
+    }
+}
+
+function updatePreferences(url, showHideType, obj) {
+    var showHideValue = 'false';
+    if ((document.getElementById(obj)
+        .innerHTML) == 'Show Values') {
+        hideAccountDetails(1);
+        showHideValue = 'true';
+    } else {
+        hideAccountDetails(0);
+        showHideValue = 'false';
+    }
+
+    jQuery.ajax({
+        type: "GET",
+        url: url,
+        data: "p_hideShowType=" + showHideType + "&p_hideShowValue=" + showHideValue,
+        dataType: "xml"
+    });
+}
+
+function attachLifeChangesEvents() {
+
+
+    //Get reference to the Life Changes lists
+
+    var list = getElementsByClassName("life-changes-list");
+
+    try {
+
+        for (i = 0; i < list.length; i++) {
+
+            //Attach mouse and keyboard events to each of the list items in the list
+
+            for (x = 0; x < list[i].childNodes.length; x++) {
+
+
+
+                if (list[i].childNodes[x].nodeType == 1) {
+
+
+
+                    addEvent(list[i].childNodes[x].childNodes[0], 'mouseover', function () {
+
+
+
+                        swapLifeChangesImage(this.childNodes[0], 1);
+
+
+
+
+
+                    });
+
+
+
+                    addEvent(list[i].childNodes[x].childNodes[0], 'mouseout', function () {
+
+
+
+                        swapLifeChangesImage(this.childNodes[0], 0);
+
+
+
+
+
+                    });
+
+
+
+
+
+
+                }
+
+
+
+            }
+
+
+        }
+
+    } catch (e) {
+        return;
+    }
+
+
+}
+
+
+
+
+function swapLifeChangesImage(obj, toggle) {
+    try {
+
+        var affix = "_hover";
+        var imgName = obj.src.split("/");
+        imgName = imgName[imgName.length - 1];
+        var onImg = imgName.split(".");
+        onImg = onImg[0] + affix + "." + onImg[1];
+
+        var imagePath = obj.src.split(imgName);
+        imagePath = imagePath[0];
+
+        var pattern = new RegExp(affix);
+
+        var match = pattern.test(imgName);
+
+
+        if (toggle) {
+
+            obj.src = imagePath + onImg;
+
+        } else {
+
+            if (match) {
+
+                imgName = imgName.split(affix);
+                imgName = imgName[0] + imgName[1];
+
+                obj.src = imagePath + imgName;
+
+            } else {
+
+                obj.src = imagePath + imgName;
+
+            }
+
+
+
+        }
+    } catch (e) {
+        return;
+    }
+
+}
+
+
+
+
+
+function openAsOfHelp() {
+	var realm = searchRealm ;
+    url = realm + "/employeeservices/help/asOfHelp";
+    newwindow = window.open(url, 'name', 'height=460,width=422, scrollbars=yes');
+    if (window.focus) {
+        newwindow.focus()
+    }
+}
+
+/*########### Displaying an alert message on click of a link and popping up a  window to a specific size ##### */
+function advancedlink(url, disclaimerText, popupSize, referingLinkId) {
+
+    var Height;
+    var Width;
+
+    try {
+
+        // To set height & width of Popup
+        if (popupSize != '') {
+            var attributes = popupSize.split("x");
+            Height = attributes[0] + "px";
+            Width = attributes[1] + "px";
+
+        }
+
+        // If disclaimer text is not null
+        if (disclaimerText != '') {
+            // If user confirm disclaimer
+            if (confirm(disclaimerText)) {
+
+                if (popupSize == '') {
+                    document.getElementById(referingLinkId)
+                        .href = url; // open url in same window i.e. No Popup
+                } else {
+                    //Popup url in window with specific height & width
+                    window.open(url, "outSiteFidelity", 'height=' + Height + ',width=' + Width + ',toolbar=yes,menubar=yes,scrollbars=yes,resizable=yes,location=no,directories=no,status=no');
+                    stopEvent();
+
+                }
+            } else {
+                stopEvent(); // Don't let the url open as user doesn't confirm the disclaimer.
+            }
+        } else {
+            // open popup without disclaimer
+            window.open(url, "WithinFidelity", 'height=' + Height + ',width=' + Width + ',toolbar=yes,menubar=yes,scrollbars=yes,resizable=yes,location=no,directories=no,status=no');
+            stopEvent();
+
+        }
+    } catch (error) // catch exception to show error message
+    {
+        alert('Error occured while executing opeartion :' + error.description);
+        stopEvent();
+    }
+
+}
+
+function stopEvent() {
+
+    var e = getEvent();
+
+    //e.cancelBubble is supported by IE - this will kill the bubbling process.
+    e.cancelBubble = true;
+    e.returnValue = false;
+
+    //e.stopPropagation works only in Firefox.
+    if (e.stopPropagation) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    return false;
+}
+
+function getEvent() {
+
+    //if(typeof window.event  == "undefined")
+    // return advancedlink.caller.arguments[0];
+    if (window.event) return window.event;
+    else return advancedlink.caller.arguments[0];
+}
+
+//Initialization function called on page load
+function init() {
+
+    try {
+
+
+
+        attachMoreLessLinkEvent();
+
+        selectFinancialPortfolioOption("financial-portfolio-4-tab", 0);
+
+        selectFinancialPortfolioOption("financial-portfolio-3-tab", 0);
+
+        selectFinancialPortfolioOption("financial-portfolio-2-tab", 0);
+
+        selectFinancialPortfolioOption("health-benefits-4-tab", 0);
+
+        attachLifeChangesEvents();
+
+        attachShowHideEvents();
+
+        attachDivHideShowEvent();
+
+        attachExpandCollapseEvents();
+
+
+
+        //attachTabNavigationEvent();
+        performanceTabNavigation();
+        giveLinkId();
+        attachMoreLink();
+        showHideRow();
+        showHidePerfEvent();
+        showHideCummEvent();
+        chartsTabNavigation();
+        viewChartPopup();
+		pageNavigation("", "", "", 1);
+
+    } catch (e) {
+
+        return;
+    }
+
+}
+
+function Zen() {
+
+    //do nothing
+
+}
+
+
+
+/* page resizer function */
+articleControl = {
+    adjustFont: function (F, H, E) {
+        var A = null;
+        var C = null;
+        var D = null;
+        var B = null;
+        try {
+            A = H;
+            C = E;
+            D = F;
+            if (typeof A == null || A == "undefined" || typeof C == null || C == "undefined" || typeof D == null || D == "undefined") {
+                return false
+            } else {
+                B = document.getElementById(A);
+                if (typeof B == null || B == "undefined") {
+                    return false
+                } else {
+                    B.style.fontSize = C + "%"
+                }
+                articleControl.changeAnchorText(D)
+            }
+        } catch (G) {
+            articleControl.shoutError(G, "adjustFont()")
+        }
+    }
+};
+
+changeAnchorText = function (A) {
+    var C = new Array();
+    try {
+        C[0] = document.getElementById("txt0");
+        C[1] = document.getElementById("txt1");
+        C[2] = document.getElementById("txt2");
+        for (i = 0; i < C.length; i++) {
+            if (typeof C[i] == null || C[i] == "undefined") {
+                return false
+            } else {
+                if (C[i].id == A) {
+                    C[i].className = A + " active"
+                } else {
+                    C[i].className = C[i].id
+                }
+            }
+        }
+    } catch (B) {
+        articleControl.shoutError(B, "changeAnchorText()")
+    }
+};
+
+/* function to open a pop up window */
+function popWindow(theURL, w, h) {
+    var newWindow = window.open(theURL, 'subWindow1024', 'toolbar=no,location=no,scrollbars=yes,status=no,menubar=no,resizable=no,fullscreen=no,left=80,top=80,height=' + h + ',width=' + w + '');
+    newWindow.focus();
+}
+
+
+
+function showExpandBlock(element)
+
+{
+
+    try {
+
+        var parent = element.parentNode;
+        for (i = 0; i < parent.childNodes.length; i++) {
+
+            if (parent.childNodes[i].nodeType != 1 || parent.childNodes[i].tagName == undefined) {
+
+                parent.removeChild(parent.childNodes[i]);
+
+            }
+        }
+        var listParent = parent.parentNode;
+        var mainparent = listParent.parentNode;
+        var divs = mainparent.getElementsByTagName("div");
+
+        for (j = 0; j < divs.length; j++) {
+            if (divs[j].className == "task hidden") {
+
+                if (element.className == "list-expand") {
+                    element.className = "list-collapse";
+                    divs[j].style.display = "block";
+                    mainparent.className = "ques-ans-list-expand";
+                    document.getElementById('deadline-txt')
+                        .innerHTML = "hide details";
+                } else {
+                    element.className = "list-expand";
+                    divs[j].style.display = "none";
+                    mainparent.className = "ques-ans-list";
+                    document.getElementById('deadline-txt')
+                        .innerHTML = "show details";
+                }
+            }
+        }
+
+    } catch (e) {
+        return;
+    }
+
+}
+
+
+
+function attachExpandCollapseEvents() {
+
+    try {
+
+        //Selectively remove all text nodes from each wrapping element
+        var allLists = getElementsByClassName("ques-ans-list");
+
+        for (x = 0; x < allLists.length; x++) {
+
+            for (i = 0; i < allLists[x].childNodes.length; i++) {
+
+                if (allLists[x].childNodes[i].nodeType != 1 || allLists[x].childNodes[i].tagName == undefined) {
+
+                    allLists[x].removeChild(allLists[x].childNodes[i]);
+
+                }
+            }
+
+        }
+
+        //Selectively remove all text nodes from each wrapping element
+        var allCategories = getElementsByClassName("category-title");
+
+        for (x = 0; x < allCategories.length; x++) {
+
+            for (i = 0; i < allCategories[x].childNodes.length; i++) {
+
+                if (allCategories[x].childNodes[i].nodeType != 1 || allCategories[x].childNodes[i].tagName == undefined) {
+
+                    allCategories[x].removeChild(allCategories[x].childNodes[i]);
+
+                }
+            }
+
+        }
+
+        //Selectively remove all text nodes from each wrapping element
+        var allListTask = getElementsByClassName("list-task");
+
+        for (x = 0; x < allListTask.length; x++) {
+
+            for (i = 0; i < allListTask[x].childNodes.length; i++) {
+
+                if (allListTask[x].childNodes[i].nodeType != 1 || allListTask[x].childNodes[i].tagName == undefined) {
+
+                    allListTask[x].removeChild(allListTask[x].childNodes[i]);
+
+                }
+            }
+
+        }
+
+
+
+        var elements = getElementsByClassName("list-expand");
+
+        for (i = 0; i < elements.length; i++) {
+
+            $(elements[i])
+                .parent()
+                .parent()
+                .parent()
+                .prepend("<a class='show-hide-block-link'></a>");
+
+            addEvent(elements[i], 'click', function () {
+
+                showExpandBlock(this);
+
+            });
+
+        }
+
+        //To address IE6 defect associated with +/- icons not being clickable in the Guided Benefits Checklist component
+
+        if (parseInt(IEVersion.Version) == 6) {
+
+            var elements2 = getElementsByClassName("list-task");
+
+            for (i = 0; i < elements2.length; i++) {
+
+                addEvent(elements2[i], 'click', function () {
+
+                    showExpandBlock(this.childNodes[0]);
+
+                });
+
+            }
+
+        }
+
+        //Attach event to each hidden anchor tag for accessibility purposes
+        var links = getElementsByClassName("show-hide-block-link");
+
+        for (i = 0; i < links.length; i++) {
+
+            links[i].title = "Press return to expand/collapse this section";
+            links[i].href = "javascript:void(0)";
+
+            addEvent(links[i], 'click', function () {
+
+                showExpandBlock(this.nextSibling.childNodes[0].childNodes[0]);
+
+            });
+
+        }
+
+    } catch (e) {
+
+        return;
+    }
+
+}
+
+
+
+//To create li tag at runtime
+function attachDivHideShowEvent() {
+
+    try {
+        var divList = getElementsByClassName("did-you-know");
+
+        var n = 0;
+        var list_element;
+        var liId = 1;
+        for (k = 0; k < divList.length; k++) {
+            divList[k].setAttribute("id", n+++"_greyBox");
+        }
+
+        for (j = 0; j < divList.length; j++) {
+
+            var divIds = j + "_greyBox";
+
+            var childDivs = document.getElementById(divIds)
+                .getElementsByTagName("div");
+
+            var childULs = document.getElementById(divIds)
+                .getElementsByTagName("ul");
+
+            var parent = document.getElementById(divIds);
+            for (i = 0; i < parent.childNodes.length; i++) {
+
+                if (parent.childNodes[i].nodeType != 1 || parent.childNodes[i].tagName == undefined) {
+
+                    parent.removeChild(parent.childNodes[i]);
+
+                }
+            }
+
+            if (childDivs.length > 1) {
+
+
+                //Start counting from 1 instead of 0 for display purposes
+                for (i = 1; i < childDivs.length + 1; i++) {
+
+                    list_element = document.createElement('li');
+                    a_element = document.createElement('a');
+                    a_element.id = "LI" + liId;
+                    a_element.innerHTML = i;
+                    var aId = "LI" + liId;
+                    a_element.setAttribute('href', "javascript:pageNavigation('" + aId + "','" + divIds + "','" + i + "')");
+                    a_element.setAttribute('ltag', "VSDESC^did you know");
+                    list_element.appendChild(a_element);
+
+                    document.getElementById(divIds)
+                        .lastChild.appendChild(list_element);
+
+                    liId++;
+                }
+
+
+            } else {}
+            var liList, ulTag, liTag;
+            var ulList = document.getElementById(divIds)
+                .getElementsByTagName("ul");
+
+            for (var k = 0; k < ulList.length; k++) {
+                ulTag = ulList[k];
+                liList = ulTag.getElementsByTagName("li");
+                if (liList.length != 0) {
+                    liTag = liList[liList.length - 1];
+                    liTag.className = "lastchild";
+                }
+
+
+
+            }
+
+        }
+    } catch (e) {
+
+        return;
+    }
+
+}
+
+//To show and hide did-you-know div
+function pageNavigation(liId, divId, liIndx, init) {
+
+    var divList = getElementsByClassName("did-you-know");
+    var dispDiv = liId + "_content";
+    var mainParent = divId; // Grey box ID
+    var flag = 0;
+
+    try {
+        //This initialization routine is needed to hide/show the collection of DIVs since we cannot count the number of DIVs in the TBB logic
+        //This function is called in the master init() function invoked on page load
+        if (init) {
+
+            for (x = 0; x < divList.length; x++) {
+
+                var dispDiv = x + "_content";
+                var contentDiv = divList[x].getElementsByTagName("div");
+                var anchorTags = divList[x].getElementsByTagName("a");
+                for (y = 0; y < contentDiv.length; y++) {
+                    if (y != 0) {
+                        contentDiv[y].className = "hidden";
+                    } else {
+                        for (k = 0; k < anchorTags.length; k++) {
+                            if (k == 0) {
+                                anchorTags[k].className = "selected";
+
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+    } catch (e) {
+        return;
+    }
+
+
+    var contentDiv = document.getElementById(mainParent)
+        .getElementsByTagName("div");
+    var a_elem = document.getElementById(mainParent)
+        .getElementsByTagName("a");
+
+    for (i = 0; i < contentDiv.length; i++) {
+        divIdx = i + 1;
+
+
+        if (liIndx != divIdx) {
+
+            contentDiv[i].className = "hidden";
+            for (j = 0; j < a_elem.length; j++) {
+
+
+                if (a_elem[j].id != liId) {
+
+                    a_elem[j].className = "unselected";
+
+                } else if (a_elem[j].id == liId && flag == 0) {
+                    flag = 1;
+                    VsTrack(a_elem[j]);
+                }
+            }
+
+        } else if (liIndx == divIdx) {
+            contentDiv[i].className = "show";
+            document.getElementById(liId)
+                .className = "selected";
+        }
+
+    }
+
+}
+
+
+
+
+//Added per instruction from Rihard Scwarz to handle the display of the Modal dialog
+function showModalDialog(doc, dialogDivName, coverDivName, contentDivName) {
+    // cover for all frames
+    coverFrames(window, coverDivName);
+    findAndDisableDropDown(doc);
+    var dlg = doc.getElementById(dialogDivName);
+    var contentDiv = doc.getElementById(contentDivName);
+    if (!isParamNull(dlg)) {
+        var hPos = Math.round(getViewportScrollX(doc) + ((getViewportWidth(doc) - 380) / 2));
+        var vPos = Math.round(getViewportScrollY(doc) + ((getViewportHeight(doc) - 190) / 2));
+        hPos = (hPos < 0) ? 0 : hPos;
+        vPos = (vPos < 0) ? 0 : vPos;
+        dlg.style.top = vPos + "px";
+        dlg.style.left = hPos + "px";
+        dlg.innerHTML = contentDiv.innerHTML;
+        dlg.style.display = "block";
+    }
+}
+
+function closeModalDialog(doc, dialogDivName, coverDivName) {
+    var dlg = doc.getElementById(dialogDivName);
+    if (!isParamNull(dlg)) {
+        dlg.style.display = "none";
+    }
+    //uncover for all frames
+    uncoverFrames(window, coverDivName);
+    findAndEnableDropDown(doc);
+}
+
+function coverFrames(frm, coverDivName) {
+    try {
+        var l = frm.location.href;
+        var cvrFrm = frm.document.getElementById(coverDivName);
+        if (!isParamNull(cvrFrm)) {
+            cvrFrm.style.display = "block";
+            cvrFrm.style.zIndex = 10;
+            cvrFrm.style.height = getPageHeight(frm.document);
+            cvrFrm.style.width = getViewportWidth(frm.document);
+        }
+        if (frm.frames) {
+            var iFramesLength = frm.frames.length;
+            if (iFramesLength != 0) {
+                for (var i = 0; i < iFramesLength; i++) {
+                    coverFrames(frm.frames[i], coverDivName);
+                }
+            }
+        }
+    } catch (e) {
+        if (frm.frames) {
+            var iFramesLength = frm.frames.length;
+            if (iFramesLength != 0) {
+                for (var i = 0; i < iFramesLength; i++) {
+                    coverFrames(frm.frames[i], coverDivName);
+                }
+            }
+        }
+    }
+}
+
+function uncoverFrames(frm, coverDivName) {
+    try {
+        var l = frm.location.href;
+        var cvrFrm = frm.document.getElementById(coverDivName);
+        if (!isParamNull(cvrFrm)) {
+            cvrFrm.style.display = "none";
+            cvrFrm.style.zIndex = 0;
+        }
+        if (frm.frames) {
+            var iFramesLength = frm.frames.length;
+            if (iFramesLength != 0) {
+                for (var i = 0; i < iFramesLength; i++) {
+                    uncoverFrames(frm.frames[i], coverDivName);
+                }
+            }
+        }
+    } catch (e) {
+        if (frm.frames) {
+            var iFramesLength = frm.frames.length;
+            if (iFramesLength != 0) {
+                for (var i = 0; i < iFramesLength; i++) {
+                    uncoverFrames(frm.frames[i], coverDivName);
+                }
+            }
+        }
+    }
+}
+
+
+//Functions added as a part of Portal pages for Tools and Resources Component
+//Initialization function called on page load
+
+function getElementsByClassName(classname, tag) {
+    if (!tag) tag = "*";
+    var elements = document.getElementsByTagName(tag);
+    var total_elements = elements.length;
+    var regexp = new RegExp('\\b' + classname + '\\b');
+    var class_elements = new Array();
+    // Go thru all the links seaching for the class name
+    for (var i = 0; i < total_elements; i++) {
+        var this_element = elements[i];
+        if (regexp.test(this_element.className)) {
+            class_elements.push(this_element);
+        }
+    }
+    return class_elements;
+}
+
+function attachMoreLessLinkEvent() {
+
+    try {
+
+        var link = getElementsByClassName("showfewer");
+        var count = getElementsByClassName("rows")
+            .length;
+
+        var textVal = document.getElementById("toolinfo");
+        document.getElementById("showfewer")
+            .setAttribute("title", "Show More");
+        document.getElementById("showfewer")
+            .setAttribute("ltag", "VSDESC^show more");
+        var rowVal = getElementsByClassName("rows");
+
+        for (i = 0; i < link.length; i++) {
+            link[i].setAttribute("href", "javascript:showMoreLess()");
+        }
+
+        for (j = 0; j < rowVal.length; j++) {
+            rowVal[j].setAttribute("id", "rowid" + j);
+        }
+        if (count >= 6) {
+            textVal.innerHTML = "Displaying 6 of " + count + " ";
+        } else {
+            textVal.innerHTML = "Displaying " + count + " of " + count + " ";
+        }
+
+    } catch (e) {
+        return false;
+    }
+
+}
+
+function showMoreLess() {
+
+    var count = getElementsByClassName("rows")
+        .length;
+    var textVal = document.getElementById("toolinfo");
+    var rw = getElementsByClassName("rows");
+
+    try {
+
+        for (var i = 0; i < rw.length; i++) {
+            var rowId = rw[i].id
+
+            var rowVal = document.getElementById(rowId);
+            var classVal = rowVal.className.split(' ');
+
+            if (rowVal.className == "rows") {
+
+                for (var k = 6; k <= rw.length; k++) {
+
+                    if (document.getElementById(rw[k].id)
+                        .style.display == "none" || document.getElementById(rw[k].id)
+                        .style.display == "") {
+
+                        document.getElementById(rw[k].id)
+                            .style.display = "block";
+                        document.getElementById("showfewer")
+                            .innerHTML = "Show Fewer";
+                        textVal.innerHTML = "Displaying " + count + " of " + count + " ";
+                        document.getElementById("showfewer")
+                            .setAttribute("title", "Show Fewer");
+                        document.getElementById("showfewer")
+                            .setAttribute("ltag", "VSDESC^show fewer");
+
+                    } else {
+
+                        document.getElementById(rw[k].id)
+                            .style.display = "none";
+                        document.getElementById("showfewer")
+                            .innerHTML = "Show More";
+                        textVal.innerHTML = "Displaying 6 of " + count + " ";
+                        document.getElementById("showfewer")
+                            .setAttribute("title", "Show More");
+                        document.getElementById("showfewer")
+                            .setAttribute("ltag", "VSDESC^show more");
+                    }
+
+                }
+            }
+
+        }
+    } catch (e) {
+        return;
+    }
+
+}
+
+// Banner Carousel
+// jQuery version: 1.4.2
+// jQuery.Cycle version: 2.9999.5
+
+(function ($) {
+    // BEGIN carousel Income Illustrator modal behaviors
+    $('.carousel-income-illustrator-modal-launch')
+        .bind('click.modalLaunch', function (e) {
+        e.preventDefault();
+        // move the controller function to within here to better control context
+        var maxwidth = ($(document)
+            .width() >= $(window)
+            .width()) ? $(document)
+            .width() : $(window)
+            .width();
+        var maxheight = ($(document)
+            .height() >= $(window)
+            .height()) ? $(document)
+            .height() : $(window)
+            .height();
+        // move the modal container to outside the list for the duration of its existence.
+        // this is because it is within nested elements all marked overflow:hidden.
+        var $modal;
+        var marker = false;
+        if ($(this)
+            .closest('.carousel-bricklet')
+            .find('.carousel-income-illustrator-component-modal')
+            .length > 0) {
+            var $carousel = $(this)
+                .closest('.carousel');
+            // it's contained within a carousel and requires special treatment...
+            // insert a marker where the modal was.
+            marker = '<span class="hidden marker" style="display:none;"></span>';
+            $modal = $(this)
+                .closest('li')
+                .find('.carousel-income-illustrator-component-modal');
+            $(marker)
+                .insertAfter($modal);
+            $modal.addClass('moved')
+                .insertAfter($carousel);
+            var $marker = $(this)
+                .closest('.carousel-bricklet')
+                .find('.hidden.marker');
+        } else {
+            // in all other cases, assume it's not constrained by container.
+            $(this)
+                .parents()
+                .each(function () {
+                if ($(this)
+                    .find('.carousel-income-illustrator-component-modal')
+                    .length > 0) {
+                    $modal = $(this)
+                        .find('.carousel-income-illustrator-component-modal');
+                    return false;
+                }
+            });
+        }
+        $modal.css({
+            'width': maxwidth + 'px',
+            'height': maxheight + 'px',
+            'display': 'block',
+            'left': 0,
+            'top': 0
+        })
+            .removeClass('hidden');
+        $carousel.parent('.carousel-bricklet')
+            .css('z-index', '10');
+        // sets position of alertbox
+        var boxleft = ($(window)
+            .width() - $modal.find('.dialogue-layer')
+            .outerWidth()) / 2;
+        // when the box is dead-center, it looks too low. Position it slighly above middle.
+        var boxtop = ($(window)
+            .height() - $modal.find('.dialogue-layer')
+            .outerHeight()) / 2.2;
+        // if the modal is taller than the viewport, make sure it doesn't run off the top
+        boxtop = (boxtop > 10) ? boxtop : 10;
+        $modal.find('.dialogue-layer')
+            .css({
+            'margin-left': boxleft + 'px',
+            'margin-top': boxtop + 'px'
+        });
+        $modal.find('.close-window,.okay,.cancel,.inactive-screen')
+            .click(function (e) {
+            incomeIllustratorModalClosure(e, $(this));
+        });
+        $(document)
+            .bind('keydown.carousel-income-illustrator-keydown', function (e) {
+            if (e.which == 27) { // 27 == escape key
+                incomeIllustratorModalClosure(e, $(this));
+                $(document)
+                    .unbind('keydown.carousel-income-illustrator-keydown');
+            }
+        });
+        $modal.find('.cancel')
+            .focus();
+        var incomeIllustratorModalClosure = function (e, $closeTrigger) {
+            e.preventDefault();
+            e.stopPropagation();
+            $modal.addClass('hidden')
+                .css('display', 'none');
+            if (marker) {
+                $modal.removeClass('moved');
+                $modal.insertAfter($carousel.find('.marker'));
+                $carousel.find('.marker')
+                    .remove();
+                // toggle the parent carousel's PAUSE switch so that it plays again.
+                $carousel.parent('.carousel-bricklet')
+                    .css('z-index', 'auto')
+                    .find('.action-switch .on')
+                    .addClass('active')
+                    .siblings('.off')
+                    .removeClass('active');
+                if ($carousel.children('li')
+                    .length > 1) {
+                    $carousel.cycle('resume');
+                }
+            }
+        }
+    });
+    // END carousel Income Illustrator modal behaviors
+})(jQuery);
+
+// END Banner Carousel
+
+//Begin News Tabbed Component
+
+$(document)
+    .ready(function () {
+
+	$('.cwv-banner').css('display','block');
+	$('.pswlt-banner').css('display','block');
+	$('.ccw-banner').css('display','block');
+	var contentCount = 3;
+
+    //This is a CMS.  Always TRY.
+    try {
+
+        //Hide all the tab content when the page loads
+        $(".tab-component")
+            .children('div')
+            .each(function () {
+
+            $(this)
+                .hide();
+
+        });
+
+        //Show the first tab
+
+        $(".tab-component")
+            .children()
+            .each(function (index) {
+
+            if (index == 1) {
+                $(this)
+                    .show();
+            }
+
+        });
+
+        //Show the current tab only when clicked
+        $('ul.tab-ul a')
+            .click(function () {
+
+            //Get the number of tabs
+            var curChildIndex = $(this)
+                .parent()
+                .prevAll()
+                .length + 2;
+
+            //Toggle the selected state of the tabs
+            $(this)
+                .parent()
+                .parent()
+                .children('.selected')
+                .removeClass('selected');
+            $(this)
+                .parent()
+                .addClass('selected');
+
+            //Toggle the tab content
+            $(this)
+                .parent()
+                .parent()
+                .parent()
+                .children('div')
+                .hide();
+            $(this)
+                .parent()
+                .parent()
+                .parent()
+                .children('div:nth-child(' + curChildIndex + ')')
+                .show();
+
+            return false;
+
+        });
+
+    } catch (e) {
+
+        //console.log();
+        return false;
+
+    }
+
+    try {
+
+        //The following statements implement the show more/show less function on the sub-landing pages
+
+        //Collect all the DIVs containing the lists of articles
+        $(".resources-teaser-ddc").each(function () {
+                if ($(this).find('.parentlist').find('.img-bar')) {
+                    $(".img-bar").next().css("width", "929px");
+                } else {
+                    $(".content-row").css("width", "979px");
+                }
+
+				//If the show more button is present in the markup then only show the first 3 articles
+				if ($(this).find(".showmore-button").length != 0) {
+					//Define the parent UL and show more/less input button
+					var myLIst = $(this).find('.parentul');
+					var button = $(this).find(".showmore-button");
+
+					//Check if it is needed for feature component which should be 6 count
+					if($("#feature-links0").length){
+						contentCount = 6;
+					}
+					//Iterate over the collection of LIs in the parent UL and hide all but the first 3
+					var lists = $(this).find('.parentlist');
+					var licount;
+					if (lists.length > contentCount) {
+						licount = lists.length - contentCount;
+						for (i = contentCount; i <= lists.length - 1; i++) {
+							lists[i].className = "hidden";
+						}
+                    //Make sure the show more/less button is visible if it is more than 3
+                    button.show();
+                    //Set the value of the button to the number of additional articles
+
+                    button.attr('value', 'Show ' + licount + ' more');
+					} else {
+                    //If the list of articles if less than 3 then hide the button
+                    button.hide();
+					}
+					//Set click event on the button
+					button.click(function () {
+						var listElem = $(this).prev('ul').children('li');
+						//Hide all but 3 of the articles in the list
+						for (k = 0; k < listElem.length; k++) {
+							if (listElem[k].className == "hidden") {
+								listElem[k].className = "parentlist show";
+								$(this).attr('value', 'Show Fewer');
+							} else if (listElem[k].className == "parentlist show") {
+								listElem[k].className = "hidden";
+								$(this).attr('value', 'Show ' + licount + ' More');
+							}
+
+						}
+					});
+				}
+				else {
+                return;
+				}
+
+        });
+
+
+    } catch (e) {
+
+        return false;
+    }
+
+    try {
+        var feature = $('.category-section ul');
+
+        for (l = 0; l < feature.length; l++) {
+            var list = $("#feature-links" + l)
+                .find('.parent-list');
+            var licounts;
+            licounts = list.length - 6;
+            if (list.length > 6) {
+                for (m = 0; m < licounts; m++) {
+                    for (o = 6; o < list.length; o++) {
+                        list[o].className = "hidden";
+                    }
+                }
+                $("#show-few-more-" + l)
+                    .show();
+                $("#show-few-more-" + l)
+                    .attr('value', 'Show ' + licounts + ' more');
+            } else {
+                $("#show-few-more-" + l)
+                    .hide();
+            }
+            $("#show-few-more-" + l)
+                .click(function () {
+                var listelem = $(this)
+                    .prev('ul')
+                    .children('li');
+                var count = 0;
+                for (n = 0; n < listelem.length; n++) {
+                    if (listelem[n].className == "hidden") {
+                        listelem[n].className = "show";
+                        $(this)
+                            .attr('value', 'Show Fewer');
+                    } else if (listelem[n].className == "show") {
+                        count++;
+                        listelem[n].className = "hidden";
+                        $(this)
+                            .attr('value', 'Show ' + count + ' More');
+                    }
+                }
+            });
+        }
+
+    } catch (e) {
+        return false;
+    }
+
+
+    //Added as onmouseover and onmouseout functionality of Hero component
+	try{
+	$(".hero-image-list li a img").each(function (index) {
+
+		$(this).attr('id','hoverImg'+index);
+
+	 });
+	} catch (e) {return false;}
+
+ try {
+        $(".hero-image-list li a img").mouseover(function () {
+
+		var imgId=this.id;
+		var srcPath = $("#"+imgId).attr("src");
+		var imgName = srcPath.split("/");
+		imgName = imgName[imgName.length - 1];
+		var splitSrc = imgName.split(".");
+		var imagePath = srcPath.split(imgName);
+		imagePath = imagePath[0];
+
+           var src = imagePath + splitSrc[0]+ "_hover." + splitSrc[1];
+	  		$(this).attr("src", src);
+        })
+	.mouseout(function () {
+
+		var imgid=this.id;
+		var srcPath = $("#"+imgid).attr("src");
+
+		var imgName = srcPath.split("/");
+		imgName = imgName[imgName.length - 1];
+		var splitSrc = imgName.split(".");
+		var imagePath = srcPath.split(imgName);
+		imagePath = imagePath[0];
+		var imagenm=splitSrc[0].replace("_hover",".");
+
+	    var src = imagePath + imagenm + splitSrc[1];
+			$(this).attr("src", src);
+        });
+
+
+    } catch (e) {
+        return false;
+    }
+
+//End Added as onmouseover and onmouseout functionality of Hero component
+    try {
+        if (window.attachSearchFormEvents) {
+            attachSearchFormEvents();
+        }
+    } catch (e) {
+        return false;
+    }
+
+//Added as a part of ERP project flyout functionality
+try{
+	$("html").click(function(event){
+			resetElement();
+		});
+}catch (e) {      //console.log();
+        return false;}
+
+
+try{
+$(".my-saved-searches").click(function(event){
+	event.stopPropagation();
+});
+} catch (e) {      //console.log();
+        return false;}
+
+	/*Code added for show more/less functionality for Guided Benefits begin*/
+	try{
+		if($("#show-more").length > 0)
+		{
+				var count =$(".life-changes-list li");
+				var moreEventsCount = 0;
+				if(count.length > 12) {
+					$("#show-more").show();
+					moreEventsCount = count.length-12;
+					 $("#show-more")
+							.attr('value', 'Show ' + moreEventsCount + ' more');
+				}
+				else{
+					$("#show-more").hide();
+				}
+	
+				$(".life-changes-list li:lt(12)").removeClass("morecontent");
+				$("#show-more").click(function(){
+					if($(this).hasClass("more")) {
+							$(".morecontent").css({"display":"inline-block","overflow":"visible"});
+							$(this).removeClass("more");
+							$(this).addClass("less");
+							$(this).attr('value', 'Show Fewer');
+					}else {
+						$(".morecontent").css({"display":"none","overflow":"hidden"});
+						$(this).removeClass("less");
+						$(this).addClass("more");
+						$(this).attr('value', 'Show ' + moreEventsCount + ' More');
+					}
+			});
+		}
+	} catch (e) {
+        return false;
+    }
+	/*Code added for show more/less functionality for Guided Benefits end*/
+
+
+	/*Code added for learn more link of Configurable Tiered Security begin*/
+	try {
+		if($("#learn-more").length > 0)
+		{
+			$("#learn-more").attr('href','#');
+			$("#learn-more").click(function(){
+				showSsoMessageOverlay();
+				return false;
+			});
+		}
+	} catch (e) {
+        return false;
+    }
+	/*Code added for learn more link of Configurable Tiered Security end*/
+});
+
+
+
+
+function resetElement(id){
+	$("#saved_search_box").hide();
+	$("#saved_search").removeClass('selected');
+
+}
+
+
+function showHideExemption(exemptId) {
+    try {
+        var modalDiv = document.getElementById(exemptId);
+        var iframepage = document.getElementById("exem-iframe");
+        var blank = document.getElementById('blankdiv');
+        if (modalDiv.style.display == "block") {
+            modalDiv.style.display = "none";
+            iframepage.style.display = "none";
+            if (blank) {
+                blank.style.display = "none";
+            }
+        } else {
+            if (blank) {
+                blank.style.display = "block";
+            }
+            iframepage.style.display = "block";
+            modalDiv.style.display = "block";
+            blank.style.height = document.body.offsetHeight + 25 + "px";
+        }
+    } catch (e) {
+        return
+    }
+}
+
+function openFindAProvider(realm) {
+    window.open(realm + '/healthandinsurance/app/providerdirectory/disclaimer?inChildWindow=Y', 'Find_a_Provider', 'toolbar=no,location=no,scrollbars=yes,status=no,menubar=no,resizable=yes,fullscreen=no,left=280,top=200,width=610,height=710');
+}
+
+function openInPopUp(url, title) {
+    window.open(url, title, 'toolbar=no,location=no,scrollbars=yes,status=no,menubar=no,resizable=yes,fullscreen=no,left=280,top=200,width=610,height=710');
+}
+
+
+
+
+
+//Start ERP project functions
+
+function hideShow(linkID, event) {
+    try {
+        var callerId = document.getElementById(linkID);
+        var searchLink = document.getElementById("saved_search");
+        var saveSearch = document.getElementById("saved_search_box");
+        var posx = getAbsoluteLeft(callerId);
+        var posy = getAbsoluteTop(callerId);
+        var leftPos = posx + callerId.offsetWidth;
+
+        if (saveSearch.style.display == "none") {
+            saveSearch.style.display = "block"
+            saveSearch.style.top = posy + callerId.offsetHeight + "px";
+            saveSearch.style.left = leftPos - saveSearch.offsetWidth + "px";
+            callerId.className = "search-links selected";
+            event.cancelBubble = true;
+        } else {
+            saveSearch.style.display = "none"
+            callerId.className = "search-links";
+            event.cancelBubble = true;
+        }
+    } catch (e) {
+        return
+    }
+}
+
+
+
+function hideViewdFund(fundId, evnt) {
+    try {
+        var callerId = document.getElementById(fundId);
+        var searchLink = document.getElementById("saved_search");
+        var saveSearch = document.getElementById("saved_search_box");
+
+        saveSearch.style.display = "none"
+        callerId.className = "search-links";
+        evnt.cancelBubble = true;
+    } catch (e) {
+        return
+    }
+}
+
+function attachTabNavigationEvent() {
+    try {
+        var list = getElementsByClassName("tab-link");
+        var tableList = getElementsByClassName("funds-table");
+        var imgtag = getElementsByClassName("questionImg");
+		var spanTag=getElementsByClassName("lispan");
+
+        for (j = 0; j < tableList.length; j++) {
+            tableList[j].setAttribute("id", "tab_" + j + "table");
+        }
+        for (k = 0; k < imgtag.length; k++) {
+            imgtag[k].setAttribute("id", "tab_" + k + "img");
+        }
+		for(b=0;b<spanTag.length;b++){
+			spanTag[b].setAttribute("id", "tab_"+b+"txt");
+		}
+
+        for (i = 0; i < list.length; i++) {
+
+            list[i].setAttribute("href", "javascript:zen()");
+            list[i].setAttribute("id", "tab_" + i);
+            addEvent(list[i], 'click', function () {
+
+                showTableContent(this, this.id);
+				//	showHeading(this, this.id);
+
+            });
+        }
+    } catch (e) {
+        return
+    }
+
+}
+
+
+
+function zen() {
+    //do nothing
+}
+
+
+function showTableContent(element, elemId) {
+
+   try {
+        var elements = getElementsByClassName("tab-link");
+        var imgtag = getElementsByClassName("questionImg");
+        var spanTag = getElementsByClassName("lispan");
+		var matchId = elemId + "img";
+
+
+       for (i = 0; i < elements.length; i++) {
+			var liId=elements[i].id;
+
+			var liTag=document.getElementById(liId).parentNode;
+
+			if(liTag.className == "selected"){
+						liTag.className="";
+					}
+
+			if(liId == elemId){
+
+				var str=document.getElementById(elemId+"txt").innerHTML; //document.getElementById(elemId).childNodes[0].innerHTML;
+
+
+				liTag.className="selected";
+				document.getElementById(elemId).childNodes[0].className = "selectedspan lispan";
+
+				document.getElementById(elemId+"table").className="funds-table show";
+
+				for(m=0;m<imgtag.length;m++){
+					var imgId=imgtag[m].id;
+
+					if(matchId == imgId){
+						document.getElementById(imgId).className="questionImg show";
+					}else{
+						document.getElementById(imgId).className="questionImg hidden";
+					}
+
+				}
+
+				}else {
+					document.getElementById(liId+"table").className="funds-table hidden";
+					document.getElementById(liId).childNodes[0].className = "lispan";
+				}
+		}
+    } catch (e) {
+        return
+    }
+}
+
+function showHeading(elemnt, elemnId){
+	try {
+		var headingId = document.getElementById(elemnId + "txt");
+		var headingTxt = headingId.innerHTML;
+
+		var tabHeading = headingTxt.split(' ');
+
+		if (tabHeading[0] == "Daily") {
+			if (document.getElementById("termsofuse").className == "hidden") {
+				document.getElementById("termsofuse").className = "show";
+			}
+			else {
+				document.getElementById("termsofuse").className = "hidden";
+			}
+		}
+		else {
+			document.getElementById("termsofuse").className = "hidden";
+		}
+
+	}catch(e){return false;}
+}
+
+
+function showHidePopup(divID) {
+    try {
+        var modalDiv = document.getElementById(divID);
+        var blank = document.getElementById('blankdiv');
+        if (modalDiv.style.display == "block") {
+
+            modalDiv.style.display = "none";
+            if (blank) {
+                blank.style.display = "none";
+            }
+        } else {
+            if (blank) {
+                blank.style.display = "block";
+            }
+
+            modalDiv.style.display = "block";
+            blank.style.height = document.body.offsetHeight + 25 + "px";
+        }
+    } catch (e) {
+        return
+    }
+}
+
+//Performance component tab navigation 	starts
+function performanceTabNavigation() {
+    try {
+        var tabList = getElementsByClassName("perfornance-link");
+        var tables = getElementsByClassName("your-performance-table");
+        var imgs = getElementsByClassName("questImg");
+
+        for (j = 0; j < tables.length; j++) {
+            tables[j].setAttribute("id", "perf-" + j + "table");
+        }
+        for (k = 0; k < imgs.length; k++) {
+            imgs[k].setAttribute("id", "perf-" + k + "img");
+        }
+        for (i = 0; i < tabList.length; i++) {
+
+            tabList[i].setAttribute("href", "javascript:zen()");
+            tabList[i].setAttribute("id", "perf-" + i);
+            addEvent(tabList[i], 'click', function () {
+
+                showPerformanceTable(this, this.id);
+
+            });
+        }
+    } catch (e) {
+        return
+    }
+}
+
+function dataTableDisplay(){  // performs check on table body height, if criteria met initialize dataTables
+	var dt3Height = $("#dataTable3 tbody").height();
+
+
+	if ( dt3Height > 174) {
+			$('#dataTable3').dataTable( {
+				"sScrollY": "174px",
+				"bPaginate": false,
+				"bFilter":false,
+				"bInfo": false,
+				"bScrollCollapse": true ,
+				"bSort": false,
+				"bDestroy": true
+			} );
+	}
+
+
+}
+
+
+function showPerformanceTable(tabElem, tabId) {
+    try {
+        var tabelements = getElementsByClassName("perfornance-link");
+        var imgstag = getElementsByClassName("questImg");
+        var imageId = tabId + "img";
+
+
+        for (i = 0; i < tabelements.length; i++) {
+            var tabsId = tabelements[i].id;
+
+
+            var liTags = document.getElementById(tabsId)
+                .parentNode;
+
+            if (liTags.className == "tabselected") {
+                liTags.className = "";
+            }
+
+            if (tabsId == tabId) {
+
+                liTags.className = "tabselected";
+                document.getElementById(tabsId)
+                    .childNodes[0].className = "selecttabspan";
+
+                document.getElementById(tabId + "table")
+                    .className = "your-performance-table show";
+					dataTableDisplay(); // initialize dataTable function for scrollbar initialization
+
+                for (m = 0; m < imgstag.length; m++) {
+                    var imgsId = imgstag[m].id;
+
+                    if (imageId == imgsId) {
+                        document.getElementById(imageId)
+                            .className = "questImg show";
+                    } else {
+                        document.getElementById(imgsId)
+                            .className = "questImg hidden";
+                    }
+
+                }
+
+            } else {
+                document.getElementById(tabsId + "table")
+                    .className = "your-performance-table hidden";
+                document.getElementById(tabsId)
+                    .childNodes[0].className = "tabspan";
+            }
+
+        }
+    } catch (e) {
+        return
+    }
+}
+
+//Performance component tab navigation 	ends
+
+function showHidePerformFund(urFundId) {
+	//$(".performance-head #urfunds img").toggle();
+    try {
+        var fundTable = urFundId + "table";
+
+        if (document.getElementById(urFundId)
+            .className == "performance-collapse") {
+            document.getElementById(urFundId)
+                .className = "performance-expand";
+            document.getElementById(fundTable)
+                .className = "hidden";
+        } else {
+            document.getElementById(urFundId)
+                .className = "performance-collapse";
+            document.getElementById(fundTable)
+                .className = "show";
+        }
+
+		var tableCount=$("#"+fundTable).find('.your-performance-table').length;
+
+			for (i = 0; i < tableCount; i++) {
+				if($("#" + fundTable).find('#perf-'+i+'table').find('table').find('tbody').children().length < 1){
+					$("#" + fundTable).find('#perf-'+i+'table').find('table').find('tbody').css('display','none');
+				}
+			}
+    } catch (e) {
+        return
+    }
+var dt1Height = $(" #dataTable1 tbody").height();
+
+	if (dt1Height >174) {
+		$('#dataTable1').dataTable( {
+				"sScrollY": "174px",
+				"bPaginate": false,
+				"bFilter":false,
+				"bInfo": false,
+				"bScrollCollapse": true ,
+				"bSort": false,
+				"bDestroy": true,
+				"bAutoWidth": false
+			} );
+	}
+}
+
+
+
+function setupRow(elm) {
+    try {
+        var bname = navigator.appName;
+        if (bname == "Microsoft Internet Explorer") {
+            elm.style.display = 'block';
+        } else {
+            elm.style.display = 'table-row';
+        }
+    } catch (e) {
+        return
+    }
+}
+
+function giveLinkId() {
+    try {
+        var listLabel = getElementsByClassName("list-label");
+
+        for (i = 0; i < listLabel.length; i++) {
+            listLabel[i].setAttribute("id", "label" + i);
+        }
+    } catch (e) {
+        return
+    }
+}
+
+// make hiding and showing TDs explicit when their parent rows are hidden.
+// to deal with an IE rendering problem.
+function switchTdVisibility(row,displayVal) {
+    var cells = row.getElementsByTagName('td');
+    if ((!$('html').hasClass('ie6') || !$('html').hasClass('ie7')) && displayVal=='block') {
+        displayVal = '';
+    }
+    for (a=0;a<cells.length;a++) {
+        cells[a].style.display = displayVal;
+    }
+}
+
+//Hide show table row of Investment choices component
+function Toggle_trGrpHeader(className, imgId) {
+    try {
+        var bname = navigator.appName;
+        var rows = new Array();
+        var minusImg = "../images/collapse_gray.gif";
+        var plusImg = "../images/expand_gray.gif";
+
+        rows = getElementsByClassName(className);
+
+        linkclassNm = document.getElementById(imgId)
+            .className;
+
+       for (i = 0; i < rows.length; i++) {
+
+           if (rows[i].style.display == '') {
+              setupRow(rows[i]);
+           }
+        }
+
+        if (linkclassNm == "list-label list-collapse") {
+            document.getElementById(imgId)
+                .className = "list-label list-expand";
+
+         for (i = 0; i < rows.length; i++) {
+              if (rows[i].style.display == 'block' || rows[i].style.display == 'table-row') {
+
+                     rows[i].style.display = 'none';
+                       switchTdVisibility(rows[i],'none');
+
+              }
+          }
+
+        } else {
+            document.getElementById(imgId)
+                .className = "list-label list-collapse";
+
+            for (i = 0; i < rows.length; i++) {
+                  if (rows[i].style.display == 'none') {
+
+                     setupRow(rows[i]);
+                     switchTdVisibility(rows[i],'block');
+                  }
+           }
+       }
+
+        return false;
+    } catch (e) {
+        return
+    }
+}
+
+//Onload Show more link in Restrictions table
+function attachMoreLink() {
+    try {
+        var restricted = getElementsByClassName("restriction-col");
+
+        var show = "15";
+        for (i = 0; i < restricted.length; i++) {
+			restricted[i].setAttribute("id", "restrict" + i);
+
+
+			var restrctVal = restricted[i].innerHTML;
+			dataArray[i] = restricted[i].innerHTML;
+			var new_sentence = '';
+
+			var words = restrctVal.split(' ');
+
+			// loop through each word
+			if( words.length > 16){
+				for (j = 0; j < words.length; j++) {
+
+					// process words that will visible to viewer
+					if (j <= show) {
+						new_sentence += words[j] + ' ';
+					}
+				}
+
+				restricted[i].innerHTML = new_sentence + '<a href="javascript:void(0)" class="more"  >...more<span class="off-screen">on [fund name as seen in left-most column but without symbol] restrictions.</span></a>'; //"<a href='javascript:void(0)' class='more' >...more<span class='off-screen'>on [fund name as seen in left-most column but without symbol] restrictions.</span></a>";
+			}
+
+			if (document.getElementById('restrict' + i).lastChild.className == "more") {
+
+				document.getElementById('restrict' + i).lastChild.setAttribute("id", "restrict" + i + "_mr");
+				document.getElementById('restrict' + i).lastChild.setAttribute("href", "javascript:showAll('restrict" + i + "_mr','" + i + "')");
+
+				}
+        }
+
+
+    } catch (e) {
+        return
+    }
+
+}
+
+
+
+//Show more link in Restrictions table
+function showAll(moreId, val) {
+    try {
+         var moreLink=moreId.split('_');
+		var tdId=moreLink[0];
+		var value="'"+moreId+"'";
+		var less="";
+
+      if (document.getElementById(moreId).className == "more") {
+			less= '<a href="javascript:showLess(' + value + ')" class="less" >...less</a>';
+		}
+
+		document.getElementById(moreId).parentElement.innerHTML = dataArray[val] + less;
+
+    } catch (e) {
+        return
+    }
+}
+
+//Show less link in Restrictions table
+function showLess(lessId) {
+    try {
+        var moreLink = lessId.split('_');
+        var tdId = moreLink[0];
+		var show = "15";
+        var fullData = document.getElementById(tdId)
+            .innerHTML;
+        var words = fullData.split(' ');
+        	var idNum=tdId.substring(8);
+		 var new_sentence = '';
+
+        // loop through each word
+        for (i = 0; i < words.length; i++) {
+
+            // process words that will visible to viewer
+            if (i <= show) {
+                new_sentence += words[i] + ' ';
+
+                // process the rest of the words
+            }
+        }
+        document.getElementById(tdId)
+            .innerHTML = new_sentence + '<a href="javascript:void(0)" class="more"  >...more</a>';
+
+      var moreLess=getElementsByClassName("more")	;
+
+			document.getElementById(tdId).lastChild.setAttribute("href","javascript:showAll('"+lessId+"','"+idNum+"')");
+			document.getElementById(tdId).lastChild.setAttribute("id",""+lessId+"");
+
+
+    } catch (e) {
+        return
+    }
+
+}
+
+function showHideRow() {
+    try {
+        var showHide = getElementsByClassName("showhiderow");
+        var benchmarkRow = getElementsByClassName("benchmarkhidden");
+        for (i = 0; i < showHide.length; i++) {
+            showHide[i].setAttribute("id", "benchMrk" + i);
+            showHide[i].setAttribute("href", "javascript:zen()");
+
+            addEvent(showHide[i], 'click', function () {
+                showRow(this, this.id);
+            });
+        }
+        for (j = 0; j < benchmarkRow.length; j++) {
+
+            benchmarkRow[j].setAttribute("id", "benchMrk" + j + "row");
+        }
+    } catch (e) {
+        return
+    }
+}
+
+function showRow(rwElem, rowID) {
+    try {
+        var benchMrkD = rowID + "row";
+        var parent = rwElem.parentNode;
+        var mainParent = parent.parentNode;
+        var trClass = mainParent.className;
+        var mainClass = trClass.split(' ');
+        var benckMrkTr = document.getElementById(benchMrkD)
+            .className;
+        var benchmrkClass = benckMrkTr.split(' ');
+        for (i = 0; i < mainClass.length; i++) {
+
+            if (mainClass[1] == "row-border") {
+                mainParent.className = mainClass[0] + " benchmarkshow";
+                document.getElementById(rowID)
+                    .innerHTML = "Hide";
+            } else {
+                mainParent.className = mainClass[0] + " row-border";
+                document.getElementById(rowID)
+                    .innerHTML = "Show";
+            }
+        }
+        for (j = 0; j < benchmrkClass.length; j++) {
+            if (benchmrkClass[1] == "benchmarkhidden") {
+                document.getElementById(benchMrkD)
+                    .className = benchmrkClass[0] + " benchmarkshow";
+            } else {
+                document.getElementById(benchMrkD)
+                    .className = benchmrkClass[0] + " benchmarkhidden";
+            }
+        }
+    } catch (e) {
+        return
+    }
+}
+
+function showHidePerfEvent() {
+    try {
+        var showHide = getElementsByClassName("hideshowrow");
+        var benchmarkRow = getElementsByClassName("hidebenchmark");
+
+        for (i = 0; i < showHide.length; i++) {
+            showHide[i].setAttribute("id", "perfBenchMrk" + i);
+            showHide[i].setAttribute("href", "javascript:zen()");
+
+            addEvent(showHide[i], 'click', function () {
+
+                showHidePerfAvgRow(this, this.id);
+            });
+        }
+        for (j = 0; j < benchmarkRow.length; j++) {
+
+            benchmarkRow[j].setAttribute("id", "perfBenchMrk" + j + "row");
+        }
+    } catch (e) {
+        return
+    }
+}
+
+
+function showHidePerfAvgRow(rowElem, rwID) {
+
+    try {
+        var benchMrkD = rwID + "row";
+        var parent = rowElem.parentNode;
+        var mainParent = parent.parentNode;
+        var trClass = mainParent.className;
+        var benckMrkTr = document.getElementById(benchMrkD)
+            .className;
+
+        if (trClass == "left-border odd" || trClass == "left-border") {
+            mainParent.className = "showbenchmark";
+            document.getElementById(rwID)
+                .innerHTML = "Hide";
+        } else {
+            mainParent.className = "left-border odd";
+            document.getElementById(rwID)
+                .innerHTML = "Show";
+        }
+
+        if (benckMrkTr == "hidebenchmark even" || benckMrkTr == "hidebenchmark") {
+            document.getElementById(benchMrkD)
+                .className = "showbenchmark";
+        } else {
+            document.getElementById(benchMrkD)
+                .className = "hidebenchmark even";
+        }
+
+    } catch (e) {
+        return
+    }
+}
+
+
+
+
+
+function showHideCummEvent() {
+    try {
+        var showHide = getElementsByClassName("cummultveshow");
+        var benchmarkRow = getElementsByClassName("hidebenchmrk");
+
+        for (i = 0; i < showHide.length; i++) {
+            showHide[i].setAttribute("id", "cummBenchMrk" + i);
+            showHide[i].setAttribute("href", "javascript:zen()");
+
+            addEvent(showHide[i], 'click', function () {
+                showHidePerfRow(this, this.id);
+            });
+        }
+        for (j = 0; j < benchmarkRow.length; j++) {
+
+            benchmarkRow[j].setAttribute("id", "cummBenchMrk" + j + "row");
+        }
+    } catch (e) {
+        return
+    }
+
+}
+
+
+function showHidePerfRow(rowElem, rwID) {
+    try {
+        var benchMrkD = rwID + "row";
+
+        var parent = rowElem.parentNode;
+
+        var mainParent = parent.parentNode;
+
+        var trClass = mainParent.className;
+
+
+        var benckMrkTr = document.getElementById(benchMrkD)
+            .className;
+
+        if (trClass == "left-border odd" || trClass == "left-border") {
+            mainParent.className = "showbenchmrk";
+            document.getElementById(rwID)
+                .innerHTML = "Hide";
+        } else {
+            mainParent.className = "left-border odd";
+            document.getElementById(rwID)
+                .innerHTML = "Show";
+        }
+
+        if (benckMrkTr == "hidebenchmrk even" || benckMrkTr == "hidebenchmrk") {
+            document.getElementById(benchMrkD)
+                .className = "showbenchmrk";
+				switchTdVisibility(document.getElementById(benchMrkD),'block');
+        } else {
+            document.getElementById(benchMrkD)
+                .className = "hidebenchmrk even";
+				switchTdVisibility(document.getElementById(benchMrkD),'none');
+        }
+
+    } catch (e) {
+        return
+    }
+}
+
+
+
+//View Stock quotes
+function viewStockQuotes(stock) {
+    try {
+        var modalDiv = document.getElementById(stock);
+        var blank = document.getElementById('blankdiv');
+        if (modalDiv.style.display == "block") {
+            modalDiv.style.display = "none";
+        } else {
+            modalDiv.style.display = "block";
+        }
+    } catch (e) {
+        return
+    }
+}
+//View Market Indices
+function viewMktIndices(mktInd) {
+    try {
+        var modalDiv = document.getElementById(mktInd);
+
+        if (modalDiv.style.display == "block") {
+            modalDiv.style.display = "none";
+
+        } else {
+            modalDiv.style.display = "block";
+        }
+    } catch (e) {
+        return
+    }
+}
+
+
+//Additional restriction
+
+function viewAddnlRestricn(additional) {
+    try {
+        var modalDiv = document.getElementById(additional);
+        var blank = document.getElementById('blankdiv');
+        if (modalDiv.style.display == "block") {
+            modalDiv.style.display = "none";
+
+        } else {
+            modalDiv.style.display = "block";
+
+        }
+    } catch (e) {
+        return
+    }
+}
+
+function viewChartPopup() {
+    try {
+        var balanceChart = getElementsByClassName("balcharticon");
+        var averageChart = getElementsByClassName("avgcharticon");
+        var cummulativeChart = getElementsByClassName("cumcharticon");
+
+        for (i = 0; i < balanceChart.length; i++) {
+
+            addEvent(balanceChart[i], 'click', function () {
+
+                showIntCharts();
+                showCharts('chartinv_0');
+            });
+        }
+
+        for (j = 0; j < averageChart.length; j++) {
+
+            addEvent(averageChart[j], 'click', function () {
+
+                showIntCharts();
+                showCharts('chartinv_1');
+            });
+        }
+
+        for (k = 0; k < cummulativeChart.length; k++) {
+
+            addEvent(cummulativeChart[k], 'click', function () {
+
+                showIntCharts();
+                showCharts('chartinv_2');
+            });
+        }
+    } catch (e) {
+        return
+    }
+
+}
+
+function showIntCharts() {
+    try {
+        var chartDisp = getElementsByClassName("investmentchart");
+        var chartId = chartDisp[0].id;
+        var chartDispId = document.getElementById(chartId);
+
+        if (chartDispId.style.display == "" || chartDispId.style.display == "none") {
+            chartDispId.style.display = "block";
+
+        } else {
+            chartDispId.style.display = "none";
+
+        }
+		$('.investmentchart').css('height',$(".investchart").height()+37+'px');
+    } catch (e) {
+        return
+    }
+}
+//Charts tab section
+function chartsTabNavigation() {
+    try {
+        var list = getElementsByClassName("charttab");
+        var tableList = getElementsByClassName("disp-chart");
+
+        for (j = 0; j < tableList.length; j++) {
+            tableList[j].setAttribute("id", "chartinv_" + j + "table");
+        }
+
+        for (i = 0; i < list.length; i++) {
+
+            list[i].setAttribute("href", "javascript:zen()");
+            list[i].setAttribute("id", "chartinv_" + i);
+            addEvent(list[i], 'click', function () {
+
+                showCharts(this.id);
+
+            });
+        }
+    } catch (e) {
+        return
+    }
+}
+
+function showCharts(chartId) {
+    try {
+        var elements = getElementsByClassName("charttab");
+
+        for (i = 0; i < elements.length; i++) {
+            var liId = elements[i].id;
+
+            var liTag = document.getElementById(liId)
+                .parentNode;
+
+            if (liTag.className == "selected") {
+                liTag.className = "";
+            }
+
+            //alert(liId+" =="+ elemId);
+            if (liId == chartId) {
+
+                liTag.className = "selected";
+
+                document.getElementById(liId + "table")
+                    .style.display = "block";
+
+            } else {
+                document.getElementById(liId + "table")
+                    .style.display = "none";
+
+            }
+        }
+		$('.investmentchart').css('height',$(".investchart").height()+37+'px');
+    } catch (e) {
+        return
+    }
+}
+//Ends ERP project
+
+
+
+/*Code added for showing popup div of Configurable Tiered Security begin*/
+function showSsoMessageOverlay() {
+	var shadow = document.getElementById("shadow");
+	var overlay = document.getElementById("overlay");
+	shadow.style.display = "block";
+	overlay.style.display = "block";
+	shadow = null;
+	overlay = null;
+	var inactive=getElementsByClassName("inactive-screen","div");
+	for (i=0; i<inactive.length; i++){
+		inactive[i].style.height=getDocHeight()+"px";
+		inactive[i].style.width=getDocWidth()+"px";
+	}
+}
+
+function hideLayer() {
+	var shadow = document.getElementById("shadow");
+	var overlay = document.getElementById("overlay");
+	shadow.style.display = "none";
+	overlay.style.display = "none";
+	shadow = null;
+	overlay = null;
+}
+
+function togleText(box)
+{
+	if(box.checked)
+	{
+		document.getElementById('LoadContent').style.display = 'block';
+	}
+	else
+	{
+		document.getElementById('LoadContent').style.display = 'none';
+	}
+}
+
+function updateSsoMsgConsent(obj, url)
+{
+    var ssoConsentFlagValue = 'U';
+
+    if (document.getElementById(obj).checked) {
+
+    	ssoConsentFlagValue = 'D'
+
+    	jQuery.ajax({
+	        type: "GET",
+	        url: url,
+	        data: "from=ngHome" + "&ssoConsentFlag=" + ssoConsentFlagValue,
+	        dataType: "xml"
+	    });
+
+    	document.getElementById('layout-region-3').style.display = 'none';
+    }
+    hideLayer();
+}
+
+function getDocHeight() {
+    var D = document;
+    return Math.max(
+        Math.max(D.body.scrollHeight, D.documentElement.scrollHeight),
+        Math.max(D.body.offsetHeight, D.documentElement.offsetHeight),
+        Math.max(D.body.clientHeight, D.documentElement.clientHeight)
+    );
+}
+
+function getDocWidth() {
+    var D = document;
+    return Math.max(
+        Math.max(D.body.scrollWidth, D.documentElement.scrollWidth),
+        Math.max(D.body.offsetWidth, D.documentElement.offsetWidth),
+        Math.max(D.body.clientWidth, D.documentElement.clientWidth)
+    );
+}
+/*Code added for showing popup div of Configurable Tiered Security end*/
+
+/* Code added for RMA begin*/
+function openRMADisclaimer(url,height,width){
+	window.open(url, '', 'height=' + height + ',width=' + width + ',toolbar=yes,menubar=yes,scrollbars=yes,resizable=yes,location=no,directories=no,status=no,top=200,left=200');
+	var e;
+	if (window.event){
+		e = window.event;
+	}else{
+
+		e = openRMADisclaimer.caller.arguments[0];
+	}
+
+	e.cancelBubble = true;
+    e.returnValue = false;
+
+    //e.stopPropagation works only in Firefox.
+    if (e.stopPropagation) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+	return false;
+}
+/* Code added for RMA end*/
+
+
+/* START JS For MAC */
+$('#edm-page').on('load', function() {
+
+	if (navigator.appVersion.indexOf("Mac")!=-1)
+	{
+		$(".mac.safari3 #edm-page .post-login-footer .right ul").css({"margin": "15px 0px 10px 10px","display": "inline-table","width": "50%"})
+		$(".mac.safari3 .action-links img").css({"padding-right": "4px","vertical-align": "middle","padding-bottom": "4px"})
+	}
+
+});
+
+
+/*Added as a part of ERP FnF*/
+function showHidePopupWindow(divID) {
+    try {
+       		var w = window.open('about:blank','chartingInvst','width=585,height=380,menubar=0,toolbar=0,location=0,status=0,scrollbars=1,resizable=1,fullscreen=0,left=350,top=350');
+			doc=w.document;
+			doc.open();
+			doc.write(('<html><head><link rel="stylesheet" href="/bin-public/06_NetBenefits_Content/css/site.css" type="text/css" /></head></html>'));
+			doc.write(document.getElementById(divID).innerHTML);
+			doc.close();
+    } catch (e) {
+        return
+    }
+}
